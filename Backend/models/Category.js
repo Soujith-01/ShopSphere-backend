@@ -45,7 +45,7 @@ const categorySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-categorySchema.index({ slug: 1 });
+// (slug index is auto-created by unique: true)
 categorySchema.index({ parentCategory: 1 });
 categorySchema.index({ level: 1 });
 categorySchema.index({ sortOrder: 1 });

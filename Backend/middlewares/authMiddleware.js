@@ -19,7 +19,7 @@ export const protect = async (req, res, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET);
     const user = await User.findById(decoded.id).select("-password -refreshToken");
     if (!user) {
       return res.status(401).json({ success: false, message: "User not found" });
@@ -46,6 +46,7 @@ export const authorize = (...roles) => {
         message: `Role '${req.user.role}' is not authorized for this resource`,
       });
     }
+
     next();
   };
 };

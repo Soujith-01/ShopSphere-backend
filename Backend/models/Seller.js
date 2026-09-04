@@ -38,7 +38,7 @@ const sellerSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-sellerSchema.index({ user: 1 });
+// (user index is auto-created by unique: true)
 sellerSchema.index({ isVerified: 1 });
 
 const Seller = mongoose.model("Seller", sellerSchema);

@@ -65,7 +65,7 @@ router.get('/', async (req, res) => {
 ### Auth (`/api/auth`) — 8 endpoints
 | Comment | Method | Endpoint |
 |---------|--------|----------|
-| Register a new customer account | POST | `/register` |
+| Register a customer or seller account (sellers pass `role: "seller"` + `businessName`, gets a Seller profile) | POST | `/register` |
 | Login with email and password | POST | `/login` |
 | Logout — clear tokens | POST | `/logout` |
 | Refresh access token | POST | `/refresh` |
@@ -237,6 +237,17 @@ All routes require auth + delivery role.
 | Accept an order | PUT | `/orders/:id/accept` |
 | Mark order as delivered | PUT | `/orders/:id/deliver` |
 
+### AI Gemini (`/api/ai`) — 4 endpoints
+Gemini-powered product copywriting, semantic search, and behavior recommendations.
+See **[`docs/AI_INTEGRATION.md`](docs/AI_INTEGRATION.md)** for full setup.
+
+| Comment | Method | Endpoint | Auth |
+|---------|--------|----------|------|
+| Generate product description + 4-6 selling points (Gemini) | POST | `/product-description` | 🔒 seller |
+| Semantic search (vector, falls back to keyword) | GET | `/search?q=...` | public |
+| Log user behavior event (VIEW/CLICK/SEARCH/WISHLIST/ADD_TO_CART/PURCHASE) | POST | `/events` | 🔒 any user |
+| Behavior-based recommendations (popular fallback) | GET | `/recommendations` | 🔒 any user |
+
 ### Support (`/api/support`) — 7 endpoints
 All routes require auth + support or admin role.
 
@@ -262,6 +273,7 @@ All routes require auth + support or admin role.
 - **Real-Time Notifications** — Socket.io ready, deep-link targets for frontend routing
 - **Audit Logging** — all admin actions tracked with auto-deletion after 90 days
 - **Geospatial Support** — 2dsphere indexes for delivery partner & store locations
+- **Gemini AI** — AI product descriptions, semantic vector search (Atlas), user-behavior recommendations with weighted events (`services/ai/*`)
 
 ---
 
@@ -284,6 +296,7 @@ All routes require auth + support or admin role.
 | **SupportTicket** | Ticketing with threaded messages |
 | **Notification** | Typed events with deep links |
 | **AuditLog** | Admin action trail (auto-delete 90 days) |
+| **UserEvent** | User behavior events (VIEW/CLICK/SEARCH/WISHLIST/ADD_TO_CART/PURCHASE) powering recommendations |
 
 ---
 
@@ -301,10 +314,50 @@ PORT=3000
 NODE_ENV=development
 CLIENT_URL=http://localhost:5173
 MONGODB_URI=mongodb://localhost:27017/freebuff
-JWT_ACCESS_SECRET=your-access-secret
-JWT_REFRESH_SECRET=your-refresh-secret
+JWT_SECRET=your-secret            # used by default (see below)
+JWT_ACCESS_SECRET=your-access-secret   # optional — overrides JWT_SECRET for access tokens
+JWT_REFRESH_SECRET=your-refresh-secret # optional — overrides JWT_SECRET for refresh tokens
 GOOGLE_CLIENT_ID=your-google-client-id
 CLOUDINARY_CLOUD_NAME=your-cloud-name
 CLOUDINARY_API_KEY=your-api-key
 CLOUDINARY_API_SECRET=your-api-secret
+# Gemini AI (optional — search/recommendations degrade gracefully without it)
+GEMINI_API_KEY=
+GEMINI_TEXT_MODEL=gemini-2.0-flash
+GEMINI_EMBEDDING_MODEL=text-embedding-004
+GEMINI_EMBEDDING_DIMENSIONS=768   # must equal the Atlas vector index dimension
+ATLAS_VECTOR_INDEX_NAME=product_embedding_index
 ```
+> JWT signing/verification falls back to `JWT_SECRET` when the dedicated access/refresh secrets are absent — one variable is enough to run.
+
+---
+
+## Automated API Testing
+
+**`common-req.http`** — hand-test every route from VS Code (REST Client extension).
+All role tokens are captured automatically from the named `loginCustomer` / `loginSeller` / … blocks;
+run the register request once, then the matching login, and the token flows into every request that needs it.
+Customers and **sellers** both register through `POST /api/auth/register` — sellers pass
+`role: "seller"` + `businessName`, which creates their Seller profile automatically
+(unverified until an admin verifies them). Only staff roles (admin/delivery/support) have no
+public registration — seed those in the DB (see the bootstrap inside `test-api.mjs`).
+
+**`test-api.mjs`** — automated end-to-end runner (153 assertions) that boots all five roles,
+exercises every module (auth, customers, cart, orders, reviews, coupons, seller store/products/orders/
+returns/dashboard, admin users/sellers/products/categories/coupons/orders/analytics, delivery, support),
+and reports PASS/FAIL per request. It drops its test database on exit.
+
+```bash
+# terminal 1 — server against an isolated test DB
+PORT=3001 MONGODB_URI=mongodb://localhost:27017/shopsphere_apitest node server.js
+
+# terminal 2 — run the suite
+cd Backend && node test-api.mjs          # add CLEANUP_AT_END=0 to keep the data after the run
+```
+
+> Note: checkout intentionally runs **without** MongoDB transactions so it also works on a standalone
+> `mongod` (transactions require a replica set). All writes happen after full validation.
+
+**`test/ai.test.mjs`** — unit tests for the AI services with a **mocked Gemini client** (no API key
+or network needed): `npm test`. The e2e runner above also verifies AI fallbacks (keyword search,
+popular recommendations, seller/503 guards) without a key.

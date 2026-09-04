@@ -9,6 +9,7 @@ import coupons from "./coupons.js";
 import users from "./users.js";
 import notifications from "./notifications.js";
 import support from "./support.js";
+import payments from "./payments.js";
 
 const router = Router();
 
@@ -22,5 +23,6 @@ router.use("/coupons", coupons);
 router.use("/users", users);
 router.use("/notifications", notifications);
 router.use("/support", support);
+router.use("/payments", payments);
 
 export default router;

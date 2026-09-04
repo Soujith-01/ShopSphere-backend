@@ -44,6 +44,12 @@ const userSchema = new mongoose.Schema(
 
     // Google OAuth
     googleId: { type: String, default: null },
+    isEmailVerified: { type: Boolean, default: false },
+
+    // Token fields (rotated on login; used by /refresh and password reset)
+    refreshToken: { type: String, default: null },
+    passwordResetToken: { type: String, default: null },
+    passwordResetExpires: { type: Date, default: null },
 
     // Addresses for shipping/billing
     addresses: [addressSchema],
@@ -67,16 +73,15 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Indexes
-userSchema.index({ email: 1 });
+// Indexes (email index is auto-created by unique: true)
 userSchema.index({ role: 1 });
 userSchema.index({ "deliveryPartner.currentLocation": "2dsphere" });
 
 // Hash password before saving
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password") || !this.password) return next();
+// Note: async middleware must NOT use next() — mongoose awaits the returned promise
+userSchema.pre("save", async function () {
+  if (!this.isModified("password") || !this.password) return;
   this.password = await bcrypt.hash(this.password, 12);
-  next();
 });
 
 // Compare password

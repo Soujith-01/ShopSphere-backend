@@ -3,6 +3,7 @@ import { body } from "express-validator";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import User from "../../models/User.js";
+import Seller from "../../models/Seller.js";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -13,28 +14,56 @@ import { validate } from "../../middlewares/validateMiddleware.js";
 
 const router = Router();
 
-// Register a new customer account
+// Register a new account — customers and sellers sign up here.
+// Sellers additionally get a Seller profile (unverified until an admin verifies them),
+// after which the frontend can render the seller dashboard based on user.role.
 router.post(
   "/register",
   [
     body("name").trim().notEmpty().withMessage("Name is required"),
     body("email").isEmail().withMessage("Valid email is required"),
     body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters"),
+    body("role").optional().isIn(["customer", "seller"]).withMessage("Role must be 'customer' or 'seller'"),
+    body("businessName")
+      .if(body("role").equals("seller"))
+      .trim()
+      .notEmpty()
+      .withMessage("businessName is required for seller registration")
+      .isLength({ max: 100 })
+      .withMessage("businessName must be at most 100 characters"),
+    body("businessType")
+      .optional()
+      .isIn(["individual", "partnership", "private_ltd", "llp"])
+      .withMessage("businessType must be individual, partnership, private_ltd or llp"),
   ],
   validate,
   async (req, res) => {
-      const { name, email, password, role } = req.body;
+      const { name, email, password, role = "customer", businessName, businessType } = req.body;
 
       const existingUser = await User.findOne({ email });
       if (existingUser) {
         return res.status(400).json({ success: false, message: "Email already registered" });
       }
 
-      // Only allow customer registration via public endpoint
-      const allowedRoles = ["customer"];
-      const userRole = allowedRoles.includes(role) ? role : "customer";
+      // Public register allows customers + sellers only (admin/delivery/support are staff roles)
+      const userRole = role === "seller" ? "seller" : "customer";
 
       const user = await User.create({ name, email, password, role: userRole });
+
+      // Sellers get a Seller profile immediately. If that fails, roll back the user
+      // so we never leave an orphaned account behind.
+      if (userRole === "seller") {
+        try {
+          await Seller.create({
+            user: user._id,
+            businessName: businessName.trim(),
+            businessType: businessType || "individual",
+          });
+        } catch (err) {
+          await User.deleteOne({ _id: user._id });
+          throw err;
+        }
+      }
 
       const accessToken = generateAccessToken(user._id);
       const refreshToken = generateRefreshToken(user._id);
@@ -117,7 +146,7 @@ router.post("/refresh", async (req, res) => {
       return res.status(401).json({ success: false, message: "No refresh token" });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET);
     const user = await User.findById(decoded.id);
 
     if (!user || user.refreshToken !== token) {
@@ -136,7 +165,6 @@ router.post("/refresh", async (req, res) => {
       success: true,
       data: { accessToken: newAccessToken },
     });
-    return res.status(401).json({ success: false, message: "Invalid refresh token" });
 });
 
 // Google OAuth login or register

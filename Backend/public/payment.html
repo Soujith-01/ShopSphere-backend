@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ShopSphere Pay — Demo Payment Gateway</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif; background: #f0f2f5; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+
+    .gateway { background: #fff; border-radius: 16px; box-shadow: 0 4px 24px rgba(0,0,0,0.1); width: 100%; max-width: 480px; overflow: hidden; }
+
+    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 28px 24px 20px; text-align: center; }
+    .header h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+    .header p { font-size: 13px; opacity: 0.85; }
+
+    .demo-banner { background: #fff3cd; color: #856404; text-align: center; padding: 10px 16px; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; border-bottom: 1px solid #ffc107; }
+
+    .order-info { padding: 20px 24px; border-bottom: 1px solid #eee; }
+    .order-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; color: #555; }
+    .order-row span:first-child { color: #888; }
+    .order-row span:last-child { font-weight: 600; color: #333; }
+    .order-amount { font-size: 28px; font-weight: 700; color: #333; text-align: center; margin-top: 12px; }
+
+    .methods { padding: 20px 24px; }
+    .methods h3 { font-size: 14px; color: #666; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .method-option { display: flex; align-items: center; padding: 14px 16px; border: 2px solid #e8e8e8; border-radius: 10px; margin-bottom: 10px; cursor: pointer; transition: all 0.2s; }
+    .method-option:hover { border-color: #667eea; background: #f8f9ff; }
+    .method-option.active { border-color: #667eea; background: #f0f2ff; }
+    .method-option input { display: none; }
+    .method-radio { width: 20px; height: 20px; border: 2px solid #ccc; border-radius: 50%; margin-right: 14px; position: relative; flex-shrink: 0; }
+    .method-option.active .method-radio { border-color: #667eea; }
+    .method-option.active .method-radio::after { content: ''; position: absolute; top: 3px; left: 3px; width: 10px; height: 10px; background: #667eea; border-radius: 50%; }
+    .method-label { font-size: 15px; font-weight: 500; color: #333; }
+    .method-icon { margin-left: auto; font-size: 20px; }
+
+    .fields { padding: 0 24px 20px; }
+    .field-group { margin-bottom: 14px; }
+    .field-group label { display: block; font-size: 13px; color: #666; margin-bottom: 6px; font-weight: 500; }
+    .field-group input { width: 100%; padding: 12px 14px; border: 1.5px solid #ddd; border-radius: 8px; font-size: 15px; outline: none; transition: border-color 0.2s; }
+    .field-group input:focus { border-color: #667eea; }
+    .field-group input::placeholder { color: #bbb; }
+
+    .actions { padding: 0 24px 24px; }
+    .btn { width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-bottom: 10px; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; }
+    .btn-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
+    .btn-danger { background: #fee; color: #e74c3c; border: 1.5px solid #fcc; }
+    .btn-danger:hover:not(:disabled) { background: #fdd; }
+    .btn-secondary { background: #f5f5f5; color: #666; border: 1.5px solid #ddd; }
+    .btn-secondary:hover:not(:disabled) { background: #eee; }
+
+    .processing { display: none; text-align: center; padding: 60px 24px; }
+    .spinner { width: 48px; height: 48px; border: 4px solid #e8e8e8; border-top-color: #667eea; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 20px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .processing p { color: #666; font-size: 15px; }
+
+    .result { display: none; text-align: center; padding: 40px 24px; }
+    .result-icon { font-size: 64px; margin-bottom: 16px; }
+    .result h2 { font-size: 22px; margin-bottom: 8px; }
+    .result p { color: #666; font-size: 14px; margin-bottom: 6px; }
+    .result .detail { font-size: 13px; color: #999; margin-bottom: 4px; }
+    .result .btn { margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="gateway">
+    <!-- Header -->
+    <div class="header">
+      <h1>🏦 ShopSphere Pay</h1>
+      <p>Demo Payment Gateway</p>
+    </div>
+    <div class="demo-banner">⚠️ DEMO PAYMENT — NO REAL MONEY IS PROCESSED</div>
+
+    <!-- Loading state -->
+    <div class="processing" id="processing">
+      <div class="spinner"></div>
+      <p>Processing payment...</p>
+    </div>
+
+    <!-- Result state -->
+    <div class="result" id="result">
+      <div class="result-icon" id="resultIcon"></div>
+      <h2 id="resultTitle"></h2>
+      <p id="resultMessage"></p>
+      <div class="detail" id="resultTxn"></div>
+      <div class="detail" id="resultOrderId"></div>
+      <button class="btn btn-primary" id="resultBtn" onclick="handleResultAction()"></button>
+    </div>
+
+    <!-- Payment form -->
+    <div id="paymentForm">
+      <!-- Order info -->
+      <div class="order-info">
+        <div class="order-row"><span>Transaction ID</span><span id="txnId">—</span></div>
+        <div class="order-row"><span>Order ID</span><span id="orderId">—</span></div>
+        <div class="order-amount" id="orderAmount">₹0</div>
+      </div>
+
+      <!-- Payment methods -->
+      <div class="methods">
+        <h3>Select Payment Method</h3>
+        <label class="method-option active" onclick="selectMethod('upi', this)">
+          <input type="radio" name="method" value="upi" checked />
+          <div class="method-radio"></div>
+          <span class="method-label">UPI</span>
+          <span class="method-icon">📱</span>
+        </label>
+        <label class="method-option" onclick="selectMethod('card', this)">
+          <input type="radio" name="method" value="card" />
+          <div class="method-radio"></div>
+          <span class="method-label">Credit / Debit Card</span>
+          <span class="method-icon">💳</span>
+        </label>
+        <label class="method-option" onclick="selectMethod('net_banking', this)">
+          <input type="radio" name="method" value="net_banking" />
+          <div class="method-radio"></div>
+          <span class="method-label">Net Banking</span>
+          <span class="method-icon">🏦</span>
+        </label>
+      </div>
+
+      <!-- Payment fields -->
+      <div class="fields" id="fieldsUpi">
+        <div class="field-group">
+          <label>UPI ID</label>
+          <input type="text" id="upiId" placeholder="yourname@upi" value="demo@upi" />
+        </div>
+      </div>
+      <div class="fields" id="fieldsCard" style="display:none;">
+        <div class="field-group">
+          <label>Card Number</label>
+          <input type="text" id="cardNumber" placeholder="4242 4242 4242 4242" value="4242 4242 4242 4242" maxlength="19" />
+        </div>
+        <div style="display:flex; gap:12px;">
+          <div class="field-group" style="flex:1;">
+            <label>Expiry</label>
+            <input type="text" id="cardExpiry" placeholder="MM/YY" value="12/28" maxlength="5" />
+          </div>
+          <div class="field-group" style="flex:1;">
+            <label>CVV</label>
+            <input type="text" id="cardCvv" placeholder="123" value="123" maxlength="4" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label>Name on Card</label>
+          <input type="text" id="cardName" placeholder="Cardholder Name" value="Demo User" />
+        </div>
+      </div>
+      <div class="fields" id="fieldsNetBanking" style="display:none;">
+        <div class="field-group">
+          <label>Select Bank</label>
+          <input type="text" id="bankName" placeholder="e.g. SBI, HDFC, ICICI" value="Demo Bank" />
+        </div>
+      </div>
+
+      <!-- Action buttons -->
+      <div class="actions">
+        <button class="btn btn-primary" id="payBtn" onclick="handlePay()">Pay <span id="payBtnAmount">₹0</span></button>
+        <button class="btn btn-danger" id="failBtn" onclick="handleFail()">Simulate Failure</button>
+        <button class="btn btn-secondary" id="cancelBtn" onclick="handleCancel()">Cancel Payment</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ─── State ───────────────────────────────────────────────────────────
+    let txnId = '';
+    let orderId = '';
+    let amount = 0;
+    let selectedMethod = 'upi';
+    let baseUrl = '';
+    let authToken = '';
+    let resultAction = '';
+
+    // ─── Parse URL params ────────────────────────────────────────────────
+    const params = new URLSearchParams(window.location.search);
+    txnId    = params.get('txn') || '';
+    orderId  = params.get('order') || '';
+    amount   = parseFloat(params.get('amount') || '0');
+    baseUrl  = params.get('base') || window.location.origin;
+    authToken = params.get('token') || '';
+
+    if (!txnId) {
+      document.getElementById('paymentForm').style.display = 'none';
+      document.getElementById('result').style.display = 'block';
+      document.getElementById('resultIcon').textContent = '❌';
+      document.getElementById('resultTitle').textContent = 'Invalid Payment Link';
+      document.getElementById('resultMessage').textContent = 'No transaction ID provided.';
+      document.getElementById('resultBtn').style.display = 'none';
+    } else {
+      document.getElementById('txnId').textContent = txnId;
+      document.getElementById('orderId').textContent = orderId || '—';
+      document.getElementById('orderAmount').textContent = '₹' + amount.toLocaleString('en-IN');
+      document.getElementById('payBtnAmount').textContent = '₹' + amount.toLocaleString('en-IN');
+    }
+
+    // ─── Payment method selection ────────────────────────────────────────
+    function selectMethod(method, el) {
+      selectedMethod = method;
+      document.querySelectorAll('.method-option').forEach(m => m.classList.remove('active'));
+      el.classList.add('active');
+      document.getElementById('fieldsUpi').style.display       = method === 'upi' ? '' : 'none';
+      document.getElementById('fieldsCard').style.display      = method === 'card' ? '' : 'none';
+      document.getElementById('fieldsNetBanking').style.display = method === 'net_banking' ? '' : 'none';
+    }
+
+    // ─── API call helper ────────────────────────────────────────────────
+    async function apiCall(endpoint, body) {
+      const res = await fetch(baseUrl + endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { 'Authorization': 'Bearer ' + authToken } : {}),
+        },
+        body: JSON.stringify(body),
+      });
+      return res.json();
+    }
+
+    // ─── Show processing ────────────────────────────────────────────────
+    function showProcessing() {
+      document.getElementById('paymentForm').style.display = 'none';
+      document.getElementById('processing').style.display = 'block';
+    }
+
+    // ─── Show result ────────────────────────────────────────────────────
+    function showResult(icon, title, message, txn, oid, btnText, action) {
+      document.getElementById('processing').style.display = 'none';
+      document.getElementById('paymentForm').style.display = 'none';
+      document.getElementById('result').style.display = 'block';
+      document.getElementById('resultIcon').textContent = icon;
+      document.getElementById('resultTitle').textContent = title;
+      document.getElementById('resultTitle').style.color = action === 'success' ? '#27ae60' : '#e74c3c';
+      document.getElementById('resultMessage').textContent = message;
+      document.getElementById('resultTxn').textContent = txn ? 'Transaction ID: ' + txn : '';
+      document.getElementById('resultOrderId').textContent = oid ? 'Order ID: ' + oid : '';
+      document.getElementById('resultBtn').textContent = btnText;
+      resultAction = action;
+    }
+
+    // ─── Handle result button click ─────────────────────────────────────
+    function handleResultAction() {
+      if (resultAction === 'success') {
+        window.location.href = baseUrl + '/order-confirmed?orderId=' + orderId;
+      } else if (resultAction === 'retry') {
+        // Reload to retry
+        window.location.reload();
+      } else if (resultAction === 'cart') {
+        window.location.href = baseUrl.replace('/api', '') + '/cart';
+      } else {
+        window.history.back();
+      }
+    }
+
+    // ─── Pay (simulate success) ─────────────────────────────────────────
+    async function handlePay() {
+      showProcessing();
+
+      // Simulate a short processing delay
+      await new Promise(r => setTimeout(r, 1500));
+
+      try {
+        const data = await apiCall('/api/customer/payments/verify', {
+          transactionId: txnId,
+          result: 'SUCCESS',
+        });
+
+        if (data.success) {
+          const info = data.data;
+          showResult(
+            '✅',
+            'Payment Successful!',
+            'Your payment of ₹' + (info.amount || amount).toLocaleString('en-IN') + ' has been processed.',
+            info.transactionId || txnId,
+            info.parentOrderId || orderId,
+            'View Order',
+            'success'
+          );
+        } else {
+          showResult(
+            '⚠️',
+            'Payment Failed',
+            data.message || 'An error occurred while processing your payment.',
+            txnId, orderId,
+            'Retry Payment',
+            'retry'
+          );
+        }
+      } catch (err) {
+        showResult(
+          '⚠️',
+          'Payment Failed',
+          'Network error. Please check your connection and try again.',
+          txnId, orderId,
+          'Retry Payment',
+          'retry'
+        );
+      }
+    }
+
+    // ─── Simulate failure ───────────────────────────────────────────────
+    async function handleFail() {
+      showProcessing();
+      await new Promise(r => setTimeout(r, 1000));
+
+      try {
+        const data = await apiCall('/api/customer/payments/verify', {
+          transactionId: txnId,
+          result: 'FAILED',
+        });
+
+        showResult(
+          '❌',
+          'Payment Failed',
+          'Your payment could not be processed. This is a simulated failure.',
+          txnId, orderId,
+          'Retry Payment',
+          'retry'
+        );
+      } catch (err) {
+        showResult(
+          '❌',
+          'Payment Failed',
+          'Network error while processing failure simulation.',
+          txnId, orderId,
+          'Retry Payment',
+          'retry'
+        );
+      }
+    }
+
+    // ─── Cancel payment ─────────────────────────────────────────────────
+    async function handleCancel() {
+      showProcessing();
+      await new Promise(r => setTimeout(r, 800));
+
+      try {
+        await apiCall('/api/customer/payments/verify', {
+          transactionId: txnId,
+          result: 'CANCELLED',
+        });
+      } catch (err) { /* best-effort */ }
+
+      showResult(
+        '🚫',
+        'Payment Cancelled',
+        'Your payment has been cancelled. No money was deducted.',
+        txnId, orderId,
+        'Return to Checkout',
+        'cart'
+      );
+    }
+  </script>
+</body>
+</html>

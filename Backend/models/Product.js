@@ -112,7 +112,7 @@ const productSchema = new mongoose.Schema(
 
 // Indexes for search and filtering
 productSchema.index({ name: "text", description: "text", tags: "text" });
-productSchema.index({ slug: 1 });
+// (slug index is auto-created by unique: true)
 productSchema.index({ seller: 1 });
 productSchema.index({ store: 1 });
 productSchema.index({ category: 1 });

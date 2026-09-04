@@ -13,3 +13,8 @@ export { default as Coupon } from "./Coupon.js";
 export { default as SupportTicket } from "./SupportTicket.js";
 export { default as Notification } from "./Notification.js";
 export { default as AuditLog } from "./AuditLog.js";
+export { default as UserEvent } from "./UserEvent.js";
+export { default as Payment } from "./Payment.js";
+export { default as Wallet } from "./Wallet.js";
+export { default as WalletTransaction } from "./WalletTransaction.js";
+export { default as Withdrawal } from "./Withdrawal.js";

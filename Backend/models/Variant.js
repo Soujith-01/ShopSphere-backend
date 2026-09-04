@@ -47,7 +47,7 @@ const variantSchema = new mongoose.Schema(
 );
 
 variantSchema.index({ product: 1 });
-variantSchema.index({ sku: 1 });
+// (sku index is auto-created by unique: true)
 variantSchema.index({ product: 1, options: 1 });
 
 // Virtual: available stock

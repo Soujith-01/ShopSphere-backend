@@ -6,6 +6,7 @@ import store from "./store.js";
 import orders from "./orders.js";
 import returns from "./returns.js";
 import dashboard from "./dashboard.js";
+import wallet from "./wallet.js";
 
 const router = Router();
 router.use(protect, requireSeller);
@@ -15,5 +16,6 @@ router.use("/store", store);
 router.use("/orders", orders);
 router.use("/returns", returns);
 router.use("/dashboard", dashboard);
+router.use("/wallet", wallet);
 
 export default router;

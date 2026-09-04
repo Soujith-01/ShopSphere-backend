@@ -1,4 +1,6 @@
 import express from 'express'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import http from 'http'
 import { Server as SocketServer } from 'socket.io'
 import cors from 'cors'
@@ -14,12 +16,15 @@ import sellerRoutes from './APIS/seller/index.js'
 import adminRoutes from './APIS/admin/index.js'
 import deliveryRoutes from './APIS/delivery/routes.js'
 import supportRoutes from './APIS/support/routes.js'
+import aiRoutes from './APIS/ai/index.js'
 
 config()
 
 const app = express()
 const server = http.createServer(app)
 const PORT = parseInt(process.env.PORT, 10) || 3000
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 // Parse allowed origins from env
 const parseOrigins = (raw) =>
@@ -68,6 +73,15 @@ if (process.env.NODE_ENV !== 'production') app.use(morgan('dev'))
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
 app.use(cookieParser())
+// Express 5 leaves req.body undefined when no body-parser matched (e.g. no Content-Type).
+// Normalize so every handler can safely destructure req.body.
+app.use((req, res, next) => {
+	req.body = req.body || {}
+	next()
+})
+
+// Static files (mock payment gateway page)
+app.use(express.static(path.join(__dirname, 'public')))
 
 // API Routes
 app.use('/api/auth', authRoutes)
@@ -76,6 +90,7 @@ app.use('/api/seller', sellerRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/delivery', deliveryRoutes)
 app.use('/api/support', supportRoutes)
+app.use('/api/ai', aiRoutes)
 
 // Error handling
 app.use(notFound)
@@ -101,7 +116,7 @@ const connectDB = async () => {
 	}
 	try {
 		await mongoose.connect(uri)
-		console.log('[MongoDB] Connected')
+		console.log('MongoDB Connected')
 	} catch (err) {
 		console.error(`[MongoDB] Connection failed: ${err.message}`)
 	}
@@ -110,7 +125,7 @@ const connectDB = async () => {
 const startServer = async () => {
 	await connectDB()
 	server.listen(PORT, () => {
-		console.log(`[LostLink] Server running on port ${PORT}`)
+		console.log(` Server running on port ${PORT}`)
 	})
 }
 

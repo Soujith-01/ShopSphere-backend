@@ -41,6 +41,13 @@ export const errorHandler = (err, req, res, next) => {
     message = "Token expired";
   }
 
+  // AI upstream errors (Gemini timeout / API / invalid response) → 502 Bad Gateway
+  // AI failures must never crash the marketplace.
+  if (err.isAIError) {
+    statusCode = 502;
+    message = err.message;
+  }
+
   res.status(statusCode).json({
     success: false,
     message,

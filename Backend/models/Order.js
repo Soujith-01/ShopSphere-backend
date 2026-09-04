@@ -109,7 +109,7 @@ const orderSchema = new mongoose.Schema(
     payment: {
       method: {
         type: String,
-        enum: ["cod", "upi", "card", "net_banking", "wallet"],
+        enum: ["cod", "upi", "card", "net_banking", "wallet", "mock"],
         default: "cod",
       },
       status: {
@@ -174,7 +174,7 @@ const orderSchema = new mongoose.Schema(
 // Indexes
 orderSchema.index({ customer: 1, createdAt: -1 });
 orderSchema.index({ seller: 1, createdAt: -1 });
-orderSchema.index({ orderNumber: 1 });
+// (orderNumber index is auto-created by unique: true)
 orderSchema.index({ status: 1 });
 orderSchema.index({ "payment.status": 1 });
 orderSchema.index({ parentOrder: 1 });

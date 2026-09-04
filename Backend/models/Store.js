@@ -63,8 +63,7 @@ const storeSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-storeSchema.index({ slug: 1 });
-storeSchema.index({ seller: 1 });
+// (slug and seller indexes are auto-created by unique: true)
 storeSchema.index({ "location": "2dsphere" });
 storeSchema.index({ isFeatured: 1 });
 

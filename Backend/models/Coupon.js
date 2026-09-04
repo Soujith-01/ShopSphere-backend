@@ -47,7 +47,7 @@ const couponSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-couponSchema.index({ code: 1 });
+// (code index is auto-created by unique: true)
 couponSchema.index({ validFrom: 1, validTo: 1 });
 couponSchema.index({ scope: 1 });
 

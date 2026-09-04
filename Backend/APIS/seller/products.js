@@ -2,6 +2,7 @@ import { Router } from "express";
 import Product from "../../models/Product.js";
 import Variant from "../../models/Variant.js";
 import { generateSlug } from "../../utils/helpers.js";
+import { refreshProductEmbedding, shouldRefreshEmbedding } from "../../services/ai/embedding.js";
 
 const router = Router();
 
@@ -39,6 +40,9 @@ router.post("/", async (req, res) => {
       tags: tags || [], attributes: attributes || [], images: images || [], shipping: shipping || {},
       hasVariants: hasVariants || false, variantOptions: variantOptions || [], discount: discount || {}, status: "draft",
     });
+
+    // Generate the AI embedding for semantic search (fire-and-forget, never blocks/fails the request)
+    refreshProductEmbedding(product._id);
 
     res.status(201).json({ success: true, message: "Product created as draft", data: product });
 });
@@ -82,6 +86,12 @@ router.put("/:id", async (req, res) => {
     }
 
     const updated = await Product.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
+
+    // Only regenerate the embedding when searchable fields actually changed
+    if (shouldRefreshEmbedding(Object.keys(updates))) {
+      refreshProductEmbedding(updated._id);
+    }
+
     res.json({ success: true, message: "Product updated", data: updated });
 });
 
@@ -121,6 +131,10 @@ router.post("/:productId/variants", async (req, res) => {
     });
 
     if (!product.hasVariants) { product.hasVariants = true; await product.save(); }
+
+    // Variant info is part of the embedding text — refresh
+    refreshProductEmbedding(product._id);
+
     res.status(201).json({ success: true, data: variant });
 });
 
@@ -142,6 +156,9 @@ router.put("/:productId/variants/:variantId", async (req, res) => {
     for (const [key, value] of Object.entries(req.body)) { if (!disallowed.includes(key)) updates[key] = value; }
 
     const updated = await Variant.findByIdAndUpdate(req.params.variantId, updates, { new: true, runValidators: true });
+
+    refreshProductEmbedding(product._id);
+
     res.json({ success: true, data: updated });
 });
 
@@ -156,6 +173,8 @@ router.delete("/:productId/variants/:variantId", async (req, res) => {
     await variant.deleteOne();
     const remaining = await Variant.countDocuments({ product: product._id });
     if (remaining === 0) { product.hasVariants = false; await product.save(); }
+
+    refreshProductEmbedding(product._id);
 
     res.json({ success: true, message: "Variant deleted" });
 });

@@ -2,6 +2,7 @@ import { Router } from "express";
 import Product from "../../models/Product.js";
 import Notification from "../../models/Notification.js";
 import AuditLog from "../../models/AuditLog.js";
+import { refreshProductEmbedding } from "../../services/ai/embedding.js";
 
 const router = Router();
 
@@ -48,6 +49,9 @@ router.put("/:productId/approve", async (req, res) => {
     product.publishedAt = new Date();
     product.rejectionReason = "";
     await product.save();
+
+    // Approved products become searchable — make sure their embedding is fresh
+    refreshProductEmbedding(product._id);
 
     await AuditLog.create({ actor: req.user._id, actorRole: "admin", action: "product.approved", entityType: "product", entityId: product._id, description: `Admin approved product "${product.name}"` });
     await Notification.create({ recipient: product.seller, type: "product_approved", title: "Product Approved", message: `Your product "${product.name}" has been approved and is now live.`, data: { entityType: "product", entityId: product._id } });

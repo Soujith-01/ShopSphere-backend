@@ -92,6 +92,16 @@ const supportTicketSchema = new mongoose.Schema(
     // Messages thread
     messages: [ticketMessageSchema],
 
+    // Status history (audit trail)
+    statusHistory: [
+      {
+        status: { type: String, required: true },
+        note: { type: String, default: "" },
+        changedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+        timestamp: { type: Date, default: Date.now },
+      },
+    ],
+
     // Resolution
     resolution: { type: String, default: "" },
     resolvedAt: { type: Date, default: null },
@@ -104,7 +114,7 @@ const supportTicketSchema = new mongoose.Schema(
 
 supportTicketSchema.index({ customer: 1, createdAt: -1 });
 supportTicketSchema.index({ assignedTo: 1, status: 1 });
-supportTicketSchema.index({ ticketNumber: 1 });
+// (ticketNumber index is auto-created by unique: true)
 supportTicketSchema.index({ status: 1, priority: -1 });
 
 const SupportTicket = mongoose.model("SupportTicket", supportTicketSchema);

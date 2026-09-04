@@ -48,7 +48,7 @@ const parentOrderSchema = new mongoose.Schema(
     payment: {
       method: {
         type: String,
-        enum: ["cod", "upi", "card", "net_banking", "wallet"],
+        enum: ["cod", "upi", "card", "net_banking", "wallet", "mock"],
         default: "cod",
       },
       status: {

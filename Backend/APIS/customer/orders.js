@@ -1,5 +1,4 @@
 import { Router } from "express";
-import mongoose from "mongoose";
 import Cart from "../../models/Cart.js";
 import Product from "../../models/Product.js";
 import Variant from "../../models/Variant.js";
@@ -10,6 +9,7 @@ import User from "../../models/User.js";
 import Notification from "../../models/Notification.js";
 import { generateOrderNumber } from "../../utils/helpers.js";
 import { protect } from "../../middlewares/authMiddleware.js";
+import UserEvent from "../../models/UserEvent.js";
 
 const router = Router();
 router.use(protect);
@@ -33,14 +33,12 @@ router.get("/parents", async (req, res) => {
 });
 
 // Checkout — creates parent order and splits into sub-orders per seller
+// Note: runs WITHOUT a MongoDB transaction so it also works on a standalone mongod
+// (transactions need a replica set). All validation happens before any write.
 router.post("/checkout", async (req, res) => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
-  try {
     const { shippingAddressId, address, paymentMethod = "cod", couponCode, customerNote = "" } = req.body;
 
-    const cart = await Cart.findOne({ user: req.user._id }).session(session);
+    const cart = await Cart.findOne({ user: req.user._id });
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({ success: false, message: "Cart is empty" });
     }
@@ -48,32 +46,34 @@ router.post("/checkout", async (req, res) => {
     // Determine shipping address from saved address or inline
     let shipAddr = address;
     if (shippingAddressId && !address) {
-      const fullUser = await User.findById(req.user._id).session(session);
+      const fullUser = await User.findById(req.user._id);
       shipAddr = fullUser.addresses.id(shippingAddressId);
       if (!shipAddr) return res.status(400).json({ success: false, message: "Address not found" });
       shipAddr = { fullName: shipAddr.fullName, phone: shipAddr.phone, street: shipAddr.street, pincode: shipAddr.pincode };
     }
     if (!shipAddr) return res.status(400).json({ success: false, message: "Shipping address required" });
 
-    // Validate stock and group items by seller
+    // Validate stock, snapshot prices, and group items by seller
     const sellerGroups = new Map();
+    const stockDeductions = [];
     let cartSubtotal = 0;
 
     for (const item of cart.items) {
-      const product = await Product.findById(item.product).session(session);
+      const product = await Product.findById(item.product);
       if (!product || product.status !== "active") {
         return res.status(400).json({ success: false, message: `Product "${item.productName || item.product}" is unavailable` });
       }
 
       let variantDoc = null;
       if (item.variant) {
-        variantDoc = await Variant.findById(item.variant).session(session);
+        variantDoc = await Variant.findById(item.variant);
         if (!variantDoc || !variantDoc.isActive) {
           return res.status(400).json({ success: false, message: `Variant unavailable for ${product.name}` });
         }
         if (item.quantity > variantDoc.availableStock) {
           return res.status(400).json({ success: false, message: `Insufficient stock for "${product.name}"` });
         }
+        stockDeductions.push({ variant: variantDoc, quantity: item.quantity });
       }
 
       const effectivePrice = variantDoc ? variantDoc.price : product.price;
@@ -92,15 +92,13 @@ router.post("/checkout", async (req, res) => {
         sellerGroups.set(sellerKey, { seller: product.seller, store: product.store, storeName: "", items: [] });
       }
       sellerGroups.get(sellerKey).items.push(orderItem);
-
-      if (variantDoc) { variantDoc.stock -= item.quantity; await variantDoc.save({ session }); }
     }
 
     // Apply coupon if provided
     let discount = 0;
     let couponDoc = null;
     if (couponCode) {
-      couponDoc = await Coupon.findOne({ code: couponCode.toUpperCase(), isActive: true }).session(session);
+      couponDoc = await Coupon.findOne({ code: couponCode.toUpperCase(), isActive: true });
       if (!couponDoc) return res.status(400).json({ success: false, message: "Invalid coupon" });
       if (new Date() < couponDoc.validFrom || new Date() > couponDoc.validTo) return res.status(400).json({ success: false, message: "Coupon expired" });
       if (couponDoc.maxUsageTotal && couponDoc.usedCount >= couponDoc.maxUsageTotal) return res.status(400).json({ success: false, message: "Coupon usage limit reached" });
@@ -119,7 +117,7 @@ router.post("/checkout", async (req, res) => {
       payment: { method: paymentMethod }, coupon: couponDoc?._id || null, discountAmount: discount,
       shippingAddress: shipAddr, customerNote, status: "processing",
     });
-    await parentOrder.save({ session });
+    await parentOrder.save();
 
     // Create sub-orders per seller
     const subOrders = [];
@@ -133,34 +131,42 @@ router.post("/checkout", async (req, res) => {
         statusHistory: [{ status: "placed", note: "Order placed", changedBy: req.user._id }],
         subtotal: sellerSubtotal, shippingCost: 0, tax: 0, discount: sellerDiscount,
         total: sellerSubtotal - sellerDiscount,
-        payment: { method: paymentMethod, status: paymentMethod === "cod" ? "pending" : "completed" },
+        payment: { method: paymentMethod, status: ["cod", "mock"].includes(paymentMethod) ? "pending" : "completed" },
         shippingAddress: shipAddr, customerNote, parentOrder: parentOrder._id,
       });
-      await subOrder.save({ session });
+      await subOrder.save();
       subOrders.push(subOrder);
     }
 
     parentOrder.subOrders = subOrders.map((o) => o._id);
-    parentOrder.payment.status = paymentMethod === "cod" ? "pending" : "completed";
-    if (paymentMethod !== "cod") parentOrder.payment.paidAt = new Date();
-    await parentOrder.save({ session });
+    parentOrder.payment.status = ["cod", "mock"].includes(paymentMethod) ? "pending" : "completed";
+    if (!["cod", "mock"].includes(paymentMethod)) parentOrder.payment.paidAt = new Date();
+    await parentOrder.save();
 
-    if (couponDoc) { couponDoc.usedCount += 1; await couponDoc.save({ session }); }
+    // Deduct stock, bump coupon usage, clear cart
+    for (const d of stockDeductions) {
+      d.variant.stock -= d.quantity;
+      await d.variant.save();
+    }
+    if (couponDoc) { couponDoc.usedCount += 1; await couponDoc.save(); }
 
-    await Cart.findByIdAndUpdate(cart._id, { items: [], subtotal: 0, totalItems: 0, coupon: null, couponCode: "", discountAmount: 0 }, { session });
+    await Cart.findByIdAndUpdate(cart._id, { items: [], subtotal: 0, totalItems: 0, coupon: null, couponCode: "", discountAmount: 0 });
 
     for (const sub of subOrders) {
-      await Notification.create([{ recipient: sub.seller, type: "order_placed", title: "New Order Received", message: `Order ${sub.orderNumber} has been placed`, data: { entityType: "order", entityId: sub._id } }], { session });
+      await Notification.create({ recipient: sub.seller, type: "order_placed", title: "New Order Received", message: `Order ${sub.orderNumber} has been placed`, data: { entityType: "order", entityId: sub._id } });
     }
 
-    await session.commitTransaction();
+    // Log PURCHASE events for AI recommendations (fire-and-forget — never blocks checkout)
+    for (const item of cart.items) {
+      UserEvent.create({
+        userId: req.user._id,
+        productId: item.product,
+        eventType: "PURCHASE",
+        metadata: { quantity: item.quantity, parentOrder: parentOrder._id },
+      }).catch(() => {});
+    }
+
     res.status(201).json({ success: true, message: "Order placed successfully", data: { parentOrder, subOrders } });
-  } catch (err) {
-    await session.abortTransaction();
-    throw err;
-  } finally {
-    session.endSession();
-  }
 });
 
 // Get my orders with pagination
