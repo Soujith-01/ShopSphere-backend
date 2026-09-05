@@ -131,7 +131,10 @@ router.post("/checkout", async (req, res) => {
         statusHistory: [{ status: "placed", note: "Order placed", changedBy: req.user._id }],
         subtotal: sellerSubtotal, shippingCost: 0, tax: 0, discount: sellerDiscount,
         total: sellerSubtotal - sellerDiscount,
-        payment: { method: paymentMethod, status: ["cod", "mock"].includes(paymentMethod) ? "pending" : "completed" },
+        // Every method starts "pending". Online methods (upi/card/net_banking) are
+        // settled exclusively through POST /api/customer/payments/verify, which marks
+        // them paid and credits the seller wallets. COD is completed at delivery.
+        payment: { method: paymentMethod, status: "pending" },
         shippingAddress: shipAddr, customerNote, parentOrder: parentOrder._id,
       });
       await subOrder.save();
@@ -139,8 +142,10 @@ router.post("/checkout", async (req, res) => {
     }
 
     parentOrder.subOrders = subOrders.map((o) => o._id);
-    parentOrder.payment.status = ["cod", "mock"].includes(paymentMethod) ? "pending" : "completed";
-    if (!["cod", "mock"].includes(paymentMethod)) parentOrder.payment.paidAt = new Date();
+    // Keep the parent payment pending for ALL methods — only payments/verify (online)
+    // or delivery (COD) may mark it paid. This guarantees seller wallets are never
+    // bypassed by checkout-level "completed" states.
+    parentOrder.payment.status = "pending";
     await parentOrder.save();
 
     // Deduct stock, bump coupon usage, clear cart

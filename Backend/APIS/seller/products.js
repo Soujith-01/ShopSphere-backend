@@ -1,6 +1,8 @@
 import { Router } from "express";
 import Product from "../../models/Product.js";
 import Variant from "../../models/Variant.js";
+import Store from "../../models/Store.js";
+import Notification from "../../models/Notification.js";
 import { generateSlug } from "../../utils/helpers.js";
 import { refreshProductEmbedding, shouldRefreshEmbedding } from "../../services/ai/embedding.js";
 
@@ -25,20 +27,26 @@ router.get("/", async (req, res) => {
     res.json({ success: true, data: products, pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) } });
 });
 
-// Create a new product (starts as draft)
+// Create a new product — published immediately so customers can see it right away
 router.post("/", async (req, res) => {
     const { name, description, price, category, subCategory, tags, attributes, images, shipping, hasVariants, variantOptions, discount, store } = req.body;
     if (!name || !price || !category) return res.status(400).json({ success: false, message: "name, price, and category are required" });
+
+    // Products live under a store — accept it from the body, the seller's linked
+    // store, or fall back to looking it up. Without one we can't publish.
+    const storeId = store || req.seller.store || (await Store.findOne({ seller: req.seller._id }).select("_id").lean())?._id;
+    if (!storeId) return res.status(400).json({ success: false, message: "Create a store first before adding products" });
 
     let slug = generateSlug(name);
     const existingSlug = await Product.findOne({ slug });
     if (existingSlug) slug = `${slug}-${Date.now().toString(36)}`;
 
     const product = await Product.create({
-      seller: req.seller._id, store: store || req.seller.store || undefined, name, slug,
+      seller: req.seller._id, store: storeId, name, slug,
       description: description || "", price: Number(price), category, subCategory: subCategory || null,
       tags: tags || [], attributes: attributes || [], images: images || [], shipping: shipping || {},
-      hasVariants: hasVariants || false, variantOptions: variantOptions || [], discount: discount || {}, status: "draft",
+      hasVariants: hasVariants || false, variantOptions: variantOptions || [], discount: discount || {},
+      status: "active", publishedAt: new Date(),
     });
 
     // Generate the AI embedding for semantic search (fire-and-forget, never blocks/fails the request)
@@ -47,16 +55,33 @@ router.post("/", async (req, res) => {
     res.status(201).json({ success: true, message: "Product created as draft", data: product });
 });
 
-// Submit product for admin review (draft → pending)
+// Publish a draft or republish a rejected product — goes straight to active.
+// Products are auto-published on create, so this only matters for products that
+// were rejected by an admin and then fixed, or legacy drafts.
 router.post("/:id/submit", async (req, res) => {
     const product = await Product.findOne({ _id: req.params.id, seller: req.seller._id });
     if (!product) return res.status(404).json({ success: false, message: "Product not found" });
     if (!["draft", "rejected"].includes(product.status)) return res.status(400).json({ success: false, message: `Cannot submit in "${product.status}" status` });
 
-    product.status = "pending";
+    product.status = "active";
     product.rejectionReason = "";
+    product.publishedAt = new Date();
     await product.save();
-    res.json({ success: true, message: "Product submitted for review", data: product });
+
+    // Notify this seller's notifications feed (recipient = Seller doc).
+    await Notification.create({
+      recipient: product.seller,
+      type: "product_approved",
+      title: "Product Approved",
+      message: `Your product "${product.name}" is now live for customers.`,
+      data: { entityType: "product", entityId: product._id },
+    });
+
+    res.json({
+      success: true,
+      message: "Product approved and now live for customers",
+      data: product,
+    });
 });
 
 // Get single product detail by ID with variants

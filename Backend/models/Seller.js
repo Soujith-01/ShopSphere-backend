@@ -8,6 +8,11 @@ const sellerSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    store: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Store",
+      default: null,
+    },
 
     // Business info
     businessName: { type: String, required: true, trim: true },

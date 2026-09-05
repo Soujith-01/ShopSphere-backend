@@ -487,7 +487,7 @@ Content-Type: application/json
 
 ## 🏪 SELLER — `/api/seller`
 > All seller routes require `protect` + `requireSeller` middleware.
-> Login as seller first or register and have admin verify.
+> Sellers register publicly via `/api/auth/register` with `role: "seller"` + `businessName`.
 
 ### Products
 
@@ -497,7 +497,7 @@ GET /api/seller/products?page=1&limit=20&status=active&search=phone
 Authorization: Bearer <seller_token>
 ```
 
-#### Create a Product (Starts as Draft)
+#### Create a Product (Auto-Published — Live for Customers Immediately)
 ```http
 POST /api/seller/products
 Authorization: Bearer <seller_token>
@@ -533,7 +533,9 @@ Content-Type: application/json
 }
 ```
 
-#### Submit Product for Review (Draft → Pending)
+#### Publish a Draft / Republish a Rejected Product
+Products are auto-published on create, so this endpoint is only needed to
+republish a product that an admin rejected (or to publish legacy drafts).
 ```http
 POST /api/seller/products/<productId>/submit
 Authorization: Bearer <seller_token>
@@ -1170,13 +1172,11 @@ Content-Type: application/json
 8. Create support ticket → POST /api/customer/support/tickets
 
 --- Seller Flow ---
-9.  Register seller      → POST /api/auth/register (role: seller + businessName, then admin verifies)
+9.  Register seller      → POST /api/auth/register (role: seller + businessName)
 10. Create store         → POST /api/seller/store
-11. Create product       → POST /api/seller/products
-12. Submit for review    → POST /api/seller/products/<id>/submit
-13. Login as admin       → POST /api/auth/login (admin account)
-14. Approve product      → PUT /api/admin/products/<id>/approve
-15. Check dashboard      → GET /api/seller/dashboard
+11. Create product       → POST /api/seller/products (goes live immediately — no approval needed)
+12. Check dashboard      → GET /api/seller/dashboard
+13. (Optional) Admin tools → PUT /api/admin/products/<id>/reject to unpublish, seller resubmits to republish
 
 --- Delivery Flow ---
 16. Login as delivery    → POST /api/auth/login (delivery account)

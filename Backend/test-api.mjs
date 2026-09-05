@@ -201,13 +201,17 @@ await T("create store", "POST", "/api/seller/store", {
 });
 await T("get store", "GET", "/api/seller/store", { token: S.selTok, expected: 200 });
 await T("update store", "PUT", "/api/seller/store", { token: S.selTok, body: { tagline: "Quality you can trust" }, expected: 200 });
-await T("create product (draft)", "POST", "/api/seller/products", {
+await T("create product (auto-published)", "POST", "/api/seller/products", {
   token: S.selTok,
   body: { name: `Wireless Mouse ${TS}`, description: "Ergonomic mouse", price: 799, category: S.catId, subCategory: S.subCatId2, tags: ["electronics", "mouse"], store: S.storeId, images: [{ url: "https://example.com/img.jpg", publicId: "img-1" }], shipping: { weight: 150 } },
-  expected: 201, stateKey: "productId", pick: (j) => j.data?._id,
+  expected: 201, stateKey: "product", pick: (j) => j.data,
 });
-S.slug = (await call("GET", "/api/seller/products", { token: S.selTok })).json?.data?.find((p) => p._id === S.productId)?.slug;
+S.productId = S.product?._id;
+S.slug = S.product?.slug;
+out(!!S.productId && S.product?.status === "active", "product created as active (live immediately)", `→ status=${S.product?.status}`);
 out(!!S.slug, "product slug auto-generated");
+r = await call("GET", `/api/customer/products/${S.slug}`);
+out(r.status === 200, "product visible to customers right after creation", `→ ${r.status}`);
 await T("list my products", "GET", "/api/seller/products", { token: S.selTok, expected: 200 });
 await T("update product", "PUT", `/api/seller/products/${S.productId}`, { token: S.selTok, body: { price: 749 }, expected: 200 });
 await T("create variant", "POST", `/api/seller/products/${S.productId}/variants`, {
@@ -217,13 +221,26 @@ await T("create variant", "POST", `/api/seller/products/${S.productId}/variants`
 await T("list variants", "GET", `/api/seller/products/${S.productId}/variants`, { token: S.selTok, expected: 200 });
 await T("update variant stock", "PUT", `/api/seller/products/${S.productId}/variants/${S.variantId}/stock`, { token: S.selTok, body: { stock: 60, lowStockThreshold: 8 }, expected: 200 });
 await T("update variant", "PUT", `/api/seller/products/${S.productId}/variants/${S.variantId}`, { token: S.selTok, body: { price: 799 }, expected: 200 });
-await T("submit product for review", "POST", `/api/seller/products/${S.productId}/submit`, { token: S.selTok, expected: 200 });
-r = await call("POST", `/api/seller/products/${S.productId}/submit`, { token: S.selTok });
-out(r.status === 400, "double submit blocked (400)", `→ ${r.status}`);
-
-step("ADMIN — moderation queue, approve, featured");
+step("ADMIN — moderation tools still work (reject → republish → approve)");
 await T("moderation queue", "GET", "/api/admin/products/moderation", { token: S.admTok, expected: 200 });
-await T("approve product", "PUT", `/api/admin/products/${S.productId}/approve`, { token: S.admTok, expected: 200 });
+// Products auto-publish, but admins can still reject and sellers can republish:
+await T("reject live product", "PUT", `/api/admin/products/${S.productId}/reject`, { token: S.admTok, body: { reason: "Blurry image" }, expected: 200 });
+r = await call("GET", `/api/customer/products/${S.slug}`);
+out(r.status === 404, "rejected product hidden from customers (404)", `→ ${r.status}`);
+await T("seller republishes rejected product", "POST", `/api/seller/products/${S.productId}/submit`, { token: S.selTok, expected: 200 });
+r = await call("GET", `/api/customer/products/${S.slug}`);
+out(r.status === 200, "republished product visible again (200)", `→ ${r.status}`);
+r = await call("POST", `/api/seller/products/${S.productId}/submit`, { token: S.selTok });
+out(r.status === 400, "submit on active product blocked (400)", `→ ${r.status}`);
+// The approve path still works for pending products (e.g. seeded manually):
+const SellerModel = (await import("./models/Seller.js")).default;
+const selDoc = await SellerModel.findOne({ user: roleUsers.sel._id }).lean();
+const pendingProd = await ProductModel.create({
+  name: `Pending Item ${TS}`, slug: `pending-${TS}`, description: "Awaiting approval", price: 500,
+  category: S.catId, store: S.storeId, seller: selDoc._id, status: "pending",
+  images: [{ url: "https://example.com/p.jpg", publicId: "p1" }],
+});
+await T("approve pending product", "PUT", `/api/admin/products/${pendingProd._id}/approve`, { token: S.admTok, expected: 200 });
 await T("toggle featured on", "PUT", `/api/admin/products/${S.productId}/featured`, { token: S.admTok, expected: 200 });
 await T("admin product list", "GET", "/api/admin/products", { token: S.admTok, expected: 200 });
 
@@ -394,6 +411,25 @@ r = await call("POST", "/api/ai/product-description", { token: S.selTok, body: {
 out(r.status === 502 || r.status === 503, "product-description fails without valid Gemini key (502 or 503)", `→ ${r.status}`);
 r = await call("POST", "/api/ai/product-description", { token: S.selTok, body: {} });
 out(r.status === 400, "product-description validation (400)", `→ ${r.status}`);
+
+step("ONLINE PAYMENT — checkout (upi) stays pending → create → verify → wallet credit");
+// Re-add the same product and place an order with an online payment method.
+// Reworked checkout must NOT mark online methods paid — settlement happens in verify.
+await T("re-add item to cart for online checkout", "POST", "/api/customer/cart", { token: S.custTok, body: { productId: S.productId, variantId: S.variantId, quantity: 1 }, expected: 200 });
+r = await call("POST", "/api/customer/orders/checkout", { token: S.custTok, body: { shippingAddressId: S.addrA, paymentMethod: "upi" } });
+out(r.status === 201, "checkout with online method creates order (201)", `→ ${r.status} ${r.json?.message || ""}`);
+S.parentOrderId = r.json?.data?.parentOrder?._id;
+S.onlineSubOrderId = r.json?.data?.subOrders?.[0]?._id;
+out(!!S.parentOrderId && !!S.onlineSubOrderId, "checkout returns parent + sub order", "");
+out(r.json?.data?.parentOrder?.payment?.status === "pending" && !r.json?.data?.parentOrder?.payment?.paidAt, "online order payment starts pending (no paidAt)", `→ ${JSON.stringify(r.json?.data?.parentOrder?.payment)}`);
+await T("create payment for online order", "POST", "/api/customer/payments/create", { token: S.custTok, body: { parentOrderId: S.parentOrderId, paymentMethod: "upi" }, expected: 201, stateKey: "txnId", pick: (j) => j.data?.transactionId });
+await T("verify payment SUCCESS", "POST", "/api/customer/payments/verify", { token: S.custTok, body: { transactionId: S.txnId, result: "SUCCESS" }, expected: 200 });
+r = await call("GET", `/api/customer/orders/${S.onlineSubOrderId}`, { token: S.custTok });
+out(r.json?.data?.payment?.status === "completed" && r.json?.data?.payment?.transactionId === S.txnId, "sub-order marked paid with transaction id", `→ ${JSON.stringify(r.json?.data?.payment)}`);
+r = await call("GET", "/api/seller/wallet", { token: S.selTok });
+out(r.status === 200 && (r.json?.data?.balance || 0) > 0, "seller wallet credited after verify", `→ ${JSON.stringify({ balance: r.json?.data?.balance, totalEarned: r.json?.data?.totalEarned })}`);
+r = await call("POST", "/api/customer/payments/create", { token: S.custTok, body: { parentOrderId: S.parentOrderId, paymentMethod: "upi" } });
+out(r.status === 400 && String(r.json?.message).includes("already paid"), "duplicate payment create blocked after verify (400)", `→ ${r.status}`);
 
 step("REMOVAL OPS — review delete, product delete, coupon delete");
 await T("delete review", "DELETE", `/api/customer/reviews/${S.reviewId}`, { token: S.custTok, expected: 200 });

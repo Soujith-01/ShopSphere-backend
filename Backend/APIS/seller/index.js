@@ -7,6 +7,8 @@ import orders from "./orders.js";
 import returns from "./returns.js";
 import dashboard from "./dashboard.js";
 import wallet from "./wallet.js";
+import notifications from "./notifications.js";
+import uploads from "./uploads.js";
 
 const router = Router();
 router.use(protect, requireSeller);
@@ -17,5 +19,7 @@ router.use("/orders", orders);
 router.use("/returns", returns);
 router.use("/dashboard", dashboard);
 router.use("/wallet", wallet);
+router.use("/notifications", notifications);
+router.use("/uploads", uploads);
 
 export default router;

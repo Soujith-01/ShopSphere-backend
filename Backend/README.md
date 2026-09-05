@@ -162,11 +162,11 @@ All routes require auth + verified seller role.
 | Comment | Method | Endpoint |
 |---------|--------|----------|
 | List all products belonging to this seller | GET | `/products` |
-| Create a new product (starts as draft) | POST | `/products` |
-| Submit product for admin review | POST | `/products/:id/submit` |
+| Create a new product (auto-published — live for customers immediately) | POST | `/products` |
+| Publish a draft / republish a rejected product | POST | `/products/:id/submit` |
 | Get single product detail by ID with variants | GET | `/products/:id` |
 | Update a product | PUT | `/products/:id` |
-| Delete a product (hard if draft, soft otherwise) | DELETE | `/products/:id` |
+| Delete a product (soft delete — hidden from storefront) | DELETE | `/products/:id` |
 | List all variants for a product | GET | `/products/:pid/variants` |
 | Create a variant for a product | POST | `/products/:pid/variants` |
 | Update a variant | PUT | `/products/:pid/variants/:vid` |
@@ -268,7 +268,7 @@ All routes require auth + support or admin role.
 - **Multi-Vendor Order Splitting** — checkout auto-splits into sub-orders per seller
 - **Order State Machine** — placed→confirmed→packed→shipped→out_for_delivery→delivered with full audit trail
 - **Return/Refund Workflow** — pending→approved→return_shipped→return_received→refunded
-- **Product Moderation** — draft→pending→admin approves→active
+- **Instant Product Publishing** — products go live the moment a seller creates them, so customers see them right away; admins can still reject or deactivate products at any time
 - **Coupon System** — platform/seller/category/product scoped with usage limits
 - **Real-Time Notifications** — Socket.io ready, deep-link targets for frontend routing
 - **Audit Logging** — all admin actions tracked with auto-deletion after 90 days
