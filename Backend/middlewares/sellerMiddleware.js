@@ -10,6 +10,15 @@ export const requireSeller = async (req, res, next) => {
         message: "You are not registered as a seller",
       });
     }
+    if (!seller.isVerified) {
+      return res.status(403).json({
+        success: false,
+        message:
+          seller.status === "rejected"
+            ? "Your seller application was rejected"
+            : "Your seller application is pending admin approval",
+      });
+    }
     if (!seller.isActive) {
       return res.status(403).json({
         success: false,

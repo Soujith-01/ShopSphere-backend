@@ -113,7 +113,9 @@ for (const [key, name] of [["adm", "Admin"], ["del", "Delivery"], ["sup", "Suppo
 }
 r = await call("POST", "/api/auth/register", { body: { name: `Seller ${TS}`, email: `sel+${TS}@test.dev`, password: "pass12345", role: "seller", businessName: `Test Store Co ${TS}` } });
 roleUsers.sel = r.json?.data?.user;
-out(r.status === 201 && roleUsers.sel?.role === "seller", "register seller via public API (201, role=seller)", `→ ${r.status} role=${roleUsers.sel?.role}`);
+out(r.status === 201 && roleUsers.sel?.role === "seller" && r.json?.data?.requiresApproval === true, "register seller via public API (201, pending approval, no session)", `→ ${r.status} role=${roleUsers.sel?.role}`);
+r = await call("POST", "/api/auth/login", { body: { email: `sel+${TS}@test.dev`, password: "pass12345" } });
+out(r.status === 403, "unapproved seller login blocked (403)", `→ ${r.status} ${r.json?.message || ""}`);
 r = await call("POST", "/api/auth/register", { body: { name: "Bad Seller", email: `badseller+${TS}@test.dev`, password: "pass12345", role: "seller" } });
 out(r.status === 400, "seller register without businessName rejected (400)", `→ ${r.status}`);
 r = await call("POST", "/api/auth/register", { body: { name: "Admin Wannabe", email: `badrole+${TS}@test.dev`, password: "pass12345", role: "admin" } });
@@ -126,6 +128,10 @@ await User.updateOne({ _id: roleUsers.del._id }, { $set: { role: "delivery" } })
 await User.updateOne({ _id: roleUsers.sup._id }, { $set: { role: "support" } });
 
 step("AUTH — role users login (tokens from register are valid after role flip)");
+// Admin approval flow: flip the seller to verified directly in the DB, exactly
+// as PUT /api/admin/sellers/:sellerId/verify would (admin token not minted yet).
+const SellerModelPre = (await import("./models/Seller.js")).default;
+await SellerModelPre.updateOne({ user: roleUsers.sel._id }, { $set: { isVerified: true } });
 for (const [key, name] of [["adm", "admin"], ["sel", "seller"], ["del", "delivery"], ["sup", "support"]]) {
   r = await call("POST", "/api/auth/login", { body: { email: `${key}+${TS}@test.dev`, password: "pass12345" } });
   S[`${key}Tok`] = r.json?.data?.accessToken;
@@ -339,7 +345,41 @@ r = await call("GET", "/api/admin/sellers", { token: S.admTok });
 S.sellerDocId = r.json?.data?.find((s) => s.businessName === `Test Store Co ${TS}`)?._id;
 out(!!S.sellerDocId, "seller appears in admin list");
 await T("admin seller detail", "GET", `/api/admin/sellers/${S.sellerDocId}`, { token: S.admTok, expected: 200 });
-await T("verify seller", "PUT", `/api/admin/sellers/${S.sellerDocId}/verify`, { token: S.admTok, expected: 200 });
+r = await call("PUT", `/api/admin/sellers/${S.sellerDocId}/verify`, { token: S.admTok });
+out(r.status === 200 && r.json?.data?.status === "approved" && r.json?.data?.isVerified === true, "verify seller → status=approved (200)", `→ ${r.status} status=${r.json?.data?.status}`);
+
+step("SELLER APPROVAL REJECT FLOW — register → admin notification → reject → login blocked");
+r = await call("POST", "/api/auth/register", { body: { name: `Rejected Seller ${TS}`, email: `selrej+${TS}@test.dev`, password: "pass12345", role: "seller", businessName: `Reject Me Co ${TS}` } });
+roleUsers.selrej = r.json?.data?.user;
+out(r.status === 201 && r.json?.data?.requiresApproval === true, "register second seller (pending approval)", `→ ${r.status}`);
+// Admin should have received a seller_pending_approval notification at registration.
+r = await call("GET", "/api/admin/notifications", { token: S.admTok });
+const approvalNotif = r.json?.data?.notifications?.find((n) => n.type === "seller_pending_approval" && n.message?.includes(`Reject Me Co ${TS}`));
+out(!!approvalNotif, "admin notified of new seller application", `→ ${r.status} types=${(r.json?.data?.notifications || []).map((n) => n.type).join(",")}`);
+r = await call("GET", "/api/admin/sellers", { token: S.admTok });
+S.rejSellerDocId = r.json?.data?.find((s) => s.businessName === `Reject Me Co ${TS}`)?._id;
+out(!!S.rejSellerDocId, "pending seller appears in admin list", "");
+r = await call("PUT", `/api/admin/sellers/${S.rejSellerDocId}/reject`, { token: S.admTok, body: {} });
+out(r.status === 400, "reject without reason blocked (400)", `→ ${r.status}`);
+r = await call("PUT", `/api/admin/sellers/${S.rejSellerDocId}/reject`, { token: S.admTok, body: { reason: "Incomplete business documents" } });
+out(r.status === 200 && r.json?.data?.status === "rejected" && r.json?.data?.isVerified === false, "reject seller with reason (200, status=rejected)", `→ ${r.status} status=${r.json?.data?.status}`);
+r = await call("POST", "/api/auth/login", { body: { email: `selrej+${TS}@test.dev`, password: "pass12345" } });
+out(r.status === 403 && String(r.json?.message).includes("rejected"), "rejected seller login blocked with rejection message (403)", `→ ${r.status} ${r.json?.message || ""}`);
+r = await call("GET", "/api/admin/sellers?status=rejected", { token: S.admTok });
+out(r.status === 200 && r.json?.data?.some((s) => s._id === S.rejSellerDocId), "status=rejected filter returns the rejected seller", `→ ${r.status}`);
+r = await call("PUT", `/api/admin/sellers/${S.rejSellerDocId}/verify`, { token: S.admTok });
+out(r.status === 200 && r.json?.data?.status === "approved" && r.json?.data?.rejectionReason === null, "approve-after-reject clears rejection (200)", `→ ${r.status} reason=${JSON.stringify(r.json?.data?.rejectionReason)}`);
+r = await call("POST", "/api/auth/login", { body: { email: `selrej+${TS}@test.dev`, password: "pass12345" } });
+out(r.status === 200 && !!r.json?.data?.accessToken, "approved-after-reject seller can login (200)", `→ ${r.status}`);
+S.selrejTok = r.json?.data?.accessToken;
+// The seller received both a seller_rejected and a seller_approved notification.
+r = await call("GET", "/api/customer/notifications", { token: S.selrejTok });
+out(r.json?.data?.notifications?.some((n) => n.type === "seller_rejected"), "seller notified of rejection", "");
+out(r.json?.data?.notifications?.some((n) => n.type === "seller_approved"), "seller notified of approval", "");
+r = await call("PUT", `/api/admin/notifications/${approvalNotif?._id}/read`, { token: S.admTok });
+out(r.status === 200, "mark admin notification read", `→ ${r.status}`);
+r = await call("DELETE", `/api/admin/notifications/${approvalNotif?._id}`, { token: S.admTok });
+out(r.status === 200, "delete admin notification", `→ ${r.status}`);
 await T("admin orders", "GET", "/api/admin/orders", { token: S.admTok, expected: 200 });
 await T("admin order detail", "GET", `/api/admin/orders/${S.orderId}`, { token: S.admTok, expected: 200 });
 await T("admin order stats", "GET", "/api/admin/orders/stats", { token: S.admTok, expected: 200 });

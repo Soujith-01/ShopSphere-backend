@@ -1,18 +1,22 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { AIError } from "../config/gemini.js";
+import { AIError, generateText, generateStructuredJSON } from "../config/gemini.js";
 import {
   normalizeAIProductFields,
   buildProductEmbeddingText,
 } from "../services/ai/productText.js";
 import {
   buildDescriptionPrompt,
+  buildDescriptionParts,
   validateDescriptionOutput,
   generateProductDescription,
 } from "../services/ai/description.js";
+import { buildChatSystemPrompt, buildChatParts, generateDescriptionChat } from "../services/ai/chat.js";
+import { fetchImageAsBase64 } from "../services/ai/image.js";
 import { generateQueryEmbedding, shouldRefreshEmbedding } from "../services/ai/embedding.js";
 import { computeInterestScores, EVENT_WEIGHTS } from "../services/ai/recommendations.js";
+import { parseNaturalQuery, simpleParseQuery } from "../services/ai/naturalSearch.js";
 
 // ---------------------------------------------------------------------------
 // Fake Gemini client — mocked, no real API calls
@@ -175,6 +179,191 @@ test("generateProductDescription propagates API errors as AIError", async () => 
   );
 });
 
+test("buildDescriptionParts puts the image first then the text part", () => {
+  const parts = buildDescriptionParts({
+    prompt: "Write a description",
+    image: { mimeType: "image/jpeg", data: "aGVsbG8=" },
+  });
+  assert.equal(parts.length, 2);
+  assert.deepEqual(parts[0], { inlineData: { mimeType: "image/jpeg", data: "aGVsbG8=" } });
+  assert.deepEqual(parts[1], { text: "Write a description" });
+});
+
+test("buildDescriptionParts omits the image part when none is given", () => {
+  const parts = buildDescriptionParts({ prompt: "Write a description", image: null });
+  assert.equal(parts.length, 1);
+  assert.deepEqual(parts[0], { text: "Write a description" });
+});
+
+test("generateProductDescription with an image still yields clean output", async () => {
+  const client = makeFakeClient({
+    text: JSON.stringify({ description: "Nice black mouse.", sellingPoints: ["Ergonomic"] }),
+  });
+  const out = await generateProductDescription(
+    { name: "Mouse", image: { mimeType: "image/jpeg", data: "aGVsbG8=" } },
+    { client }
+  );
+  assert.equal(out.description, "Nice black mouse.");
+  assert.deepEqual(out.sellingPoints, ["Ergonomic"]);
+});
+
+// ---------------------------------------------------------------------------
+// description chat (Ask-AI assistant)
+// ---------------------------------------------------------------------------
+test("buildChatSystemPrompt includes product fields and no-invention rules", () => {
+  const prompt = buildChatSystemPrompt({
+    name: "Running Shoes",
+    brand: "Nike",
+    category: "Sports",
+    description: "Comfortable",
+    sellingPoints: ["Lightweight"],
+    attributes: [{ name: "color", value: "Black" }],
+    features: ["Breathable"],
+    tags: ["sneakers"],
+    variants: [{ label: "UK 9", sku: "NS-9" }],
+  });
+  assert.match(prompt, /Running Shoes/);
+  assert.match(prompt, /Nike/);
+  assert.match(prompt, /Never invent specifications/);
+  assert.match(prompt, /Lightweight/);
+  assert.match(prompt, /UK 9 \(NS-9\)/);
+});
+
+test("buildChatParts puts the image before the message text", () => {
+  const parts = buildChatParts({
+    message: "Make it shorter",
+    image: { mimeType: "image/png", data: "aW1n" },
+  });
+  assert.equal(parts.length, 2);
+  assert.deepEqual(parts[0], { inlineData: { mimeType: "image/png", data: "aW1n" } });
+  assert.deepEqual(parts[1], { text: "Make it shorter" });
+});
+
+test("generateDescriptionChat returns the model text with a mocked client", async () => {
+  const client = makeFakeClient({ text: "Shorter description here." });
+  const reply = await generateDescriptionChat(
+    { message: "Make this description shorter", product: { name: "Shoes" }, history: [{ role: "user", content: "hi" }] },
+    { client }
+  );
+  assert.equal(reply, "Shorter description here.");
+});
+
+test("generateDescriptionChat requires a message", async () => {
+  await assert.rejects(
+    () => generateDescriptionChat({ message: "   " }, { client: makeFakeClient() }),
+    (err) => err instanceof AIError
+  );
+});
+
+test("generateDescriptionChat propagates upstream errors as AIError", async () => {
+  const client = makeFakeClient({ textError: new Error("boom") });
+  await assert.rejects(
+    () => generateDescriptionChat({ message: "Shorter please", product: { name: "Shoes" } }, { client }),
+    (err) => err instanceof AIError && err.code === "AI_API_ERROR"
+  );
+});
+
+test("generateText retries once on a transient 503 and succeeds", async () => {
+  let calls = 0;
+  const client = {
+    models: {
+      async generateContent() {
+        calls++;
+        if (calls === 1) throw new Error('{"error":{"code":503,"message":"high demand","status":"UNAVAILABLE"}}');
+        return { text: "Retried OK." };
+      },
+    },
+  };
+  const reply = await generateText({ prompt: "hi", deps: { client } });
+  assert.equal(reply, "Retried OK.");
+  assert.equal(calls, 2);
+});
+
+test("generateText maps exhausted transient errors to a friendly AI_BUSY message", async () => {
+  const client = {
+    models: {
+      async generateContent() {
+        throw new Error('{"error":{"code":503,"message":"high demand","status":"UNAVAILABLE"}}');
+      },
+    },
+  };
+  await assert.rejects(
+    () => generateText({ prompt: "hi", deps: { client } }),
+    (err) => err instanceof AIError && err.code === "AI_BUSY" && /busy/.test(err.message)
+  );
+});
+
+test("generateStructuredJSON parses JSON with raw newlines inside string values", async () => {
+  // Models sometimes emit real newlines inside string values, which is not
+  // valid JSON. The parser must escape them before JSON.parse.
+  const client = makeFakeClient({
+    text: '{\n  "description": "Line one\nLine two of the description.",\n  "sellingPoints": ["A", "B"]\n}',
+  });
+  const out = await generateStructuredJSON({ prompt: "x", schema: {}, deps: { client } });
+  assert.equal(out.description, "Line one\nLine two of the description.");
+  assert.deepEqual(out.sellingPoints, ["A", "B"]);
+});
+
+test("generateStructuredJSON parses JSON wrapped in markdown code fences", async () => {
+  const client = makeFakeClient({
+    text: '```json\n{"description": "Great.", "sellingPoints": ["X"]}\n```',
+  });
+  const out = await generateStructuredJSON({ prompt: "x", schema: {}, deps: { client } });
+  assert.equal(out.description, "Great.");
+  assert.deepEqual(out.sellingPoints, ["X"]);
+});
+
+test("generateText does not retry non-transient errors (single call, AI_API_ERROR)", async () => {
+  let calls = 0;
+  const client = {
+    models: {
+      async generateContent() {
+        calls++;
+        throw new Error("quota exceeded");
+      },
+    },
+  };
+  await assert.rejects(
+    () => generateText({ prompt: "hi", deps: { client } }),
+    (err) => err instanceof AIError && err.code === "AI_API_ERROR"
+  );
+  assert.equal(calls, 1);
+});
+
+test("fetchImageAsBase64 returns null for missing / non-http URLs without throwing", async () => {
+  assert.equal(await fetchImageAsBase64(null), null);
+  assert.equal(await fetchImageAsBase64(""), null);
+  assert.equal(await fetchImageAsBase64("ftp://example.com/img.jpg"), null);
+  assert.equal(await fetchImageAsBase64("javascript:alert(1)"), null);
+});
+
+test("generateDescriptionChat sends history turns to the client in order", async () => {
+  let seenContents = null;
+  const client = {
+    models: {
+      async generateContent({ contents }) {
+        seenContents = contents;
+        return { text: "OK." };
+      },
+    },
+  };
+  await generateDescriptionChat(
+    {
+      message: "Now shorter",
+      product: { name: "Shoes" },
+      history: [
+        { role: "user", content: "Write a description" },
+        { role: "assistant", content: "Great shoes." },
+      ],
+    },
+    { client }
+  );
+  assert.equal(seenContents.length, 3);
+  assert.equal(seenContents[0].role, "user");
+  assert.equal(seenContents[1].role, "model"); // assistant → model
+  assert.equal(seenContents[2].role, "user");
+});
+
 // ---------------------------------------------------------------------------
 // embedding
 // ---------------------------------------------------------------------------
@@ -228,4 +417,65 @@ test("computeInterestScores ignores events without a productId and allows custom
     { weights: { VIEW: 10 } }
   );
   assert.deepEqual(scores, [["x", 10]]);
+});
+
+// ---------------------------------------------------------------------------
+// natural search — query parsing + fallback
+// ---------------------------------------------------------------------------
+test("parseNaturalQuery delegates to Gemini and returns structured filters", async () => {
+  const client = makeFakeClient({
+    text: JSON.stringify({
+      keywords: "headphones",
+      category: "Electronics",
+      maxPrice: 3000,
+      features: ["microphone"],
+      purpose: "gaming",
+    }),
+  });
+  const result = await parseNaturalQuery({ query: "headphones for gaming under 3000 with microphone", deps: { client } });
+  assert.equal(result.keywords, "headphones");
+  assert.equal(result.category, "Electronics");
+  assert.equal(result.maxPrice, 3000);
+  assert.deepEqual(result.features, ["microphone"]);
+  assert.equal(result.purpose, "gaming");
+});
+
+test("parseNaturalQuery rejects empty queries", async () => {
+  await assert.rejects(
+    () => parseNaturalQuery({ query: "" }),
+    (err) => err instanceof AIError
+  );
+  await assert.rejects(
+    () => parseNaturalQuery({ query: "   " }),
+    (err) => err instanceof AIError
+  );
+});
+
+test("simpleParseQuery extracts maxPrice from 'under 3000'", () => {
+  const r = simpleParseQuery("headphones under 3000");
+  assert.equal(r.maxPrice, 3000);
+  assert.match(r.keywords, /headphones/);
+});
+
+test("simpleParseQuery extracts minPrice from 'above 500'", () => {
+  const r = simpleParseQuery("phone cases above 500");
+  assert.equal(r.minPrice, 500);
+});
+
+test("simpleParseQuery extracts ₹ price", () => {
+  const r = simpleParseQuery("shoes under ₹2000");
+  assert.equal(r.maxPrice, 2000);
+});
+
+test("simpleParseQuery removes filler words from keywords", () => {
+  const r = simpleParseQuery("I need wireless headphones for gaming");
+  assert.ok(r.keywords.length < "I need wireless headphones for gaming".length);
+  assert.match(r.keywords, /wireless headphones/);
+});
+
+test("simpleParseQuery handles plain queries without prices", () => {
+  const r = simpleParseQuery("running shoes with good grip");
+  assert.equal(r.maxPrice, null);
+  assert.equal(r.minPrice, null);
+  assert.match(r.keywords, /running shoes/);
 });

@@ -22,20 +22,37 @@ router.get("/stats", async (req, res) => {
 });
 
 // List all tickets with filters (status, priority, category, assigned agent)
+// assignedTo=unassigned → tickets not yet picked up (the shared queue).
 router.get("/tickets", async (req, res) => {
   const { page = 1, limit = 20, status, priority, category, assignedTo } = req.query;
   const filter = {};
   if (status) filter.status = status;
   if (priority) filter.priority = priority;
   if (category) filter.category = category;
-  if (assignedTo) filter.assignedTo = assignedTo;
+  if (assignedTo === "unassigned") filter.assignedTo = null;
+  else if (assignedTo) filter.assignedTo = assignedTo;
 
   const pageNum = Math.max(1, Number(page));
   const limitNum = Math.min(100, Math.max(1, Number(limit)));
 
+  // Sort by priority weight (urgent first), then newest — alphabetical string
+  // sort would put "urgent" below "medium", so map to a numeric weight in the
+  // pipeline before paginating.
   const [tickets, total] = await Promise.all([
-    SupportTicket.find(filter).sort({ priority: -1, createdAt: -1 }).skip((pageNum - 1) * limitNum).limit(limitNum)
-      .populate("customer", "name email").populate("assignedTo", "name avatar").lean(),
+    SupportTicket.aggregate([
+      { $match: filter },
+      { $addFields: { priorityWeight: { $switch: { branches: [
+        { case: { $eq: ["$priority", "urgent"] }, then: 4 },
+        { case: { $eq: ["$priority", "high"] }, then: 3 },
+        { case: { $eq: ["$priority", "medium"] }, then: 2 },
+      ], default: 1 } } } },
+      { $sort: { priorityWeight: -1, createdAt: -1 } },
+      { $skip: (pageNum - 1) * limitNum },
+      { $limit: limitNum },
+      { $lookup: { from: "users", localField: "customer", foreignField: "_id", as: "customer", pipeline: [{ $project: { name: 1, email: 1 } }] } },
+      { $lookup: { from: "users", localField: "assignedTo", foreignField: "_id", as: "assignedTo", pipeline: [{ $project: { name: 1, avatar: 1 } }] } },
+      { $addFields: { customer: { $arrayElemAt: ["$customer", 0] }, assignedTo: { $ifNull: [{ $arrayElemAt: ["$assignedTo", 0] }, null] } } },
+    ]),
     SupportTicket.countDocuments(filter),
   ]);
   res.json({ success: true, data: tickets, pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) } });

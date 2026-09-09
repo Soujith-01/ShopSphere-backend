@@ -181,13 +181,12 @@ router.get("/", async (req, res) => {
   if (status) filter.status = status;
 
   const pageNum = Math.max(1, Number(page));
-  const limitNum = Math.min(50, Math.max(1, Number(limit)));
-
-  const [orders, total] = await Promise.all([
-    Order.find(filter).sort({ createdAt: -1 }).skip((pageNum - 1) * limitNum).limit(limitNum)
-      .populate("seller", "businessName").populate("store", "name slug logo").lean(),
-    Order.countDocuments(filter),
-  ]);
+  const limitNum = Math.min(50, Math.max(1, Number(limit)));    const [orders, total] = await Promise.all([
+      Order.find(filter).sort({ createdAt: -1 }).skip((pageNum - 1) * limitNum).limit(limitNum)
+      .populate("seller", "businessName").populate("store", "name slug logo")
+      .populate("deliveryPartner", "name phone email deliveryPartner.vehicleType").lean(),
+      Order.countDocuments(filter),
+    ]);
 
   res.json({ success: true, data: orders, pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) } });
 });
@@ -197,7 +196,7 @@ router.get("/:orderId", async (req, res) => {
   const order = await Order.findOne({ _id: req.params.orderId, customer: req.user._id })
     .populate("seller", "businessName").populate("store", "name slug logo")
     .populate("items.product", "name slug images").populate("items.variant", "label")
-    .populate("deliveryPartner", "name phone").populate("parentOrder");
+    .populate("deliveryPartner", "name phone email deliveryPartner.vehicleType").populate("parentOrder");
 
   if (!order) return res.status(404).json({ success: false, message: "Order not found" });
   res.json({ success: true, data: order });

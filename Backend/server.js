@@ -1,3 +1,7 @@
+// Load .env FIRST — ESM evaluates imports before any code below runs, so
+// modules that read process.env at import time (Cloudinary config, AI
+// services, seller wallet, etc.) would otherwise see undefined values.
+import 'dotenv/config'
 import express from 'express'
 import path from 'path'
 import { fileURLToPath } from 'url'
@@ -7,7 +11,6 @@ import cors from 'cors'
 import helmet from 'helmet'
 import morgan from 'morgan'
 import cookieParser from 'cookie-parser'
-import { config } from 'dotenv'
 import mongoose from 'mongoose'
 import { notFound, errorHandler } from './middlewares/errorMiddleware.js'
 import authRoutes from './APIS/auth/auth.js'
@@ -16,9 +19,9 @@ import sellerRoutes from './APIS/seller/index.js'
 import adminRoutes from './APIS/admin/index.js'
 import deliveryRoutes from './APIS/delivery/routes.js'
 import supportRoutes from './APIS/support/routes.js'
+import supportNotificationRoutes from './APIS/support/notifications.js'
 import aiRoutes from './APIS/ai/index.js'
-
-config()
+import setupMessageSocket from './sockets/messages.js'
 
 const app = express()
 const server = http.createServer(app)
@@ -66,6 +69,9 @@ io.on('connection', (socket) => {
 app.set('io', io)
 app.set('connectedUsers', connectedUsers)
 
+// Real-time messaging handlers
+setupMessageSocket(io, connectedUsers)
+
 // Global middleware
 app.use(helmet())
 app.use(cors({ origin: origins, credentials: true }))
@@ -90,6 +96,7 @@ app.use('/api/seller', sellerRoutes)
 app.use('/api/admin', adminRoutes)
 app.use('/api/delivery', deliveryRoutes)
 app.use('/api/support', supportRoutes)
+app.use('/api/support/notifications', supportNotificationRoutes)
 app.use('/api/ai', aiRoutes)
 
 // Error handling

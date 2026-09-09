@@ -4,6 +4,7 @@ import crypto from "crypto";
 import jwt from "jsonwebtoken";
 import User from "../../models/User.js";
 import Seller from "../../models/Seller.js";
+import Notification from "../../models/Notification.js";
 import {
   generateAccessToken,
   generateRefreshToken,
@@ -15,8 +16,10 @@ import { validate } from "../../middlewares/validateMiddleware.js";
 const router = Router();
 
 // Register a new account — customers and sellers sign up here.
-// Sellers additionally get a Seller profile (unverified until an admin verifies them),
-// after which the frontend can render the seller dashboard based on user.role.
+// Sellers additionally get a Seller profile (unverified until an admin verifies them).
+// They receive NO session on register: an approval request goes to the admins, and
+// login stays blocked (403) until an admin approves them via
+// PUT /api/admin/sellers/:sellerId/verify.
 router.post(
   "/register",
   [
@@ -54,15 +57,39 @@ router.post(
       // so we never leave an orphaned account behind.
       if (userRole === "seller") {
         try {
-          await Seller.create({
+          const seller = await Seller.create({
             user: user._id,
             businessName: businessName.trim(),
             businessType: businessType || "individual",
           });
+
+          // Approval request: notify every active admin so the application shows
+          // up for review. The seller stays unverified (and can't log in) until an
+          // admin approves them via PUT /api/admin/sellers/:sellerId/verify.
+          const admins = await User.find({ role: "admin", isActive: true }).select("_id");
+          if (admins.length > 0) {
+            await Notification.create(
+              admins.map((admin) => ({
+                recipient: admin._id,
+                type: "seller_pending_approval",
+                title: "New Seller Approval Request",
+                message: `"${businessName.trim()}" (${user.email}) registered as a seller and is awaiting your approval.`,
+                data: { entityType: "seller", entityId: seller._id },
+              }))
+            );
+          }
         } catch (err) {
           await User.deleteOne({ _id: user._id });
           throw err;
         }
+
+        // Sellers do NOT get a session yet — login only works after admin approval.
+        return res.status(201).json({
+          success: true,
+          message:
+            "Registration successful. Your seller application has been sent for admin approval — you can log in once approved.",
+          data: { user, requiresApproval: true },
+        });
       }
 
       const accessToken = generateAccessToken(user._id);
@@ -111,6 +138,20 @@ router.post(
 
       if (!user.isActive) {
         return res.status(403).json({ success: false, message: "Account deactivated" });
+      }
+
+      // Sellers can't log in until an admin approves their application.
+      if (user.role === "seller") {
+        const seller = await Seller.findOne({ user: user._id }).select("isVerified status");
+        if (!seller) {
+          return res.status(403).json({ success: false, message: "Seller profile not found for this account" });
+        }
+        if (!seller.isVerified) {
+          const pending = seller.status === "rejected"
+            ? "Your seller application was rejected by an admin. You cannot log in with this account."
+            : "Your seller application is pending admin approval. You can log in once an admin approves it.";
+          return res.status(403).json({ success: false, message: pending });
+        }
       }
 
       const accessToken = generateAccessToken(user._id);
@@ -185,6 +226,9 @@ router.post("/google", async (req, res) => {
     let user = await User.findOne({ $or: [{ googleId }, { email }] });
 
     if (user) {
+      if (!user.isActive) {
+        return res.status(403).json({ success: false, message: "Account deactivated" });
+      }
       user.googleId = googleId;
       if (picture && !user.avatar.url) {
         user.avatar = { url: picture, publicId: "" };
@@ -289,5 +333,40 @@ router.get("/me", protect, async (req, res) => {
     const user = await User.findById(req.user._id).select("-password -refreshToken");
     res.json({ success: true, data: user });
 });
+
+// Request account reactivation — used by deactivated users who can't log in.
+// Sends a notification to all active admins so they can review the request.
+router.post(
+  "/request-activation",
+  [body("email").isEmail().withMessage("Valid email is required")],
+  validate,
+  async (req, res) => {
+      const { email } = req.body;
+      const user = await User.findOne({ email: email.toLowerCase().trim() });
+      if (!user) {
+        // Don't reveal whether the email exists
+        return res.json({ success: true, message: "If your account is deactivated, a reactivation request has been sent to our admin team." });
+      }
+      if (user.isActive) {
+        return res.json({ success: true, message: "Your account is already active. You can log in normally." });
+      }
+
+      // Notify all active admins about the reactivation request
+      const admins = await User.find({ role: "admin", isActive: true }).select("_id");
+      if (admins.length > 0) {
+        await Notification.create(
+          admins.map((admin) => ({
+            recipient: admin._id,
+            type: "activation_request",
+            title: "Account Reactivation Request",
+            message: `User "${user.name}" (${user.email}) has requested account reactivation. Please review and activate their account if appropriate.`,
+            data: { entityType: "user", entityId: user._id },
+          }))
+        );
+      }
+
+      res.json({ success: true, message: "Your reactivation request has been sent to our admin team. You'll be notified once it's reviewed." });
+  }
+);
 
 export default router;

@@ -22,8 +22,16 @@ const sellerSchema = new mongoose.Schema(
       default: "individual",
     },
 
-    // Verification
+    // Verification / approval lifecycle. `status` is the source of truth;
+    // `isVerified` is kept in sync (approved ⇔ true) for existing queries.
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
     isVerified: { type: Boolean, default: false },
+    rejectionReason: { type: String, default: null, maxlength: 500 },
+    rejectedAt: { type: Date, default: null },
 
 
     // Seller stats (denormalized for fast reads)
@@ -45,6 +53,7 @@ const sellerSchema = new mongoose.Schema(
 
 // (user index is auto-created by unique: true)
 sellerSchema.index({ isVerified: 1 });
+sellerSchema.index({ status: 1 });
 
 const Seller = mongoose.model("Seller", sellerSchema);
 export default Seller;

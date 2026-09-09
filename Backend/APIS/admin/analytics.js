@@ -40,9 +40,9 @@ router.get("/top-products", async (req, res) => {
 router.get("/", async (req, res) => {
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
-    const [totalUsers, newUsersThisMonth, totalSellers, verifiedSellers, totalProducts, activeProducts, pendingProducts, totalOrders, revenueThisMonth, totalRevenue] = await Promise.all([
+    const [totalUsers, newUsersThisMonth, totalSellers, verifiedSellers, pendingSellers, totalProducts, activeProducts, pendingProducts, totalOrders, revenueThisMonth, totalRevenue] = await Promise.all([
       User.countDocuments(), User.countDocuments({ createdAt: { $gte: startOfMonth } }),
-      Seller.countDocuments(), Seller.countDocuments({ isVerified: true }),
+      Seller.countDocuments(), Seller.countDocuments({ isVerified: true }), Seller.countDocuments({ status: "pending" }),
       Product.countDocuments(), Product.countDocuments({ status: "active" }), Product.countDocuments({ status: "pending" }),
       Order.countDocuments(),
       Order.aggregate([{ $match: { createdAt: { $gte: startOfMonth }, status: { $ne: "cancelled" } } }, { $group: { _id: null, total: { $sum: "$total" } } }]),
@@ -51,7 +51,7 @@ router.get("/", async (req, res) => {
 
     res.json({ success: true, data: {
       users: { total: totalUsers, newThisMonth: newUsersThisMonth },
-      sellers: { total: totalSellers, verified: verifiedSellers },
+      sellers: { total: totalSellers, verified: verifiedSellers, pending: pendingSellers },
       products: { total: totalProducts, active: activeProducts, pending: pendingProducts },
       orders: { total: totalOrders },
       revenue: { thisMonth: revenueThisMonth[0]?.total || 0, allTime: totalRevenue[0]?.total || 0 },

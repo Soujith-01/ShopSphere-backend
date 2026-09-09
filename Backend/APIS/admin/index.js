@@ -7,6 +7,7 @@ import categories from "./categories.js";
 import coupons from "./coupons.js";
 import orders from "./orders.js";
 import analytics from "./analytics.js";
+import notifications from "./notifications.js";
 
 const router = Router();
 router.use(protect, authorize("admin"));
@@ -18,5 +19,6 @@ router.use("/categories", categories);
 router.use("/coupons", coupons);
 router.use("/orders", orders);
 router.use("/analytics", analytics);
+router.use("/notifications", notifications);
 
 export default router;

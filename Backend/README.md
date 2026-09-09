@@ -65,8 +65,8 @@ router.get('/', async (req, res) => {
 ### Auth (`/api/auth`) — 8 endpoints
 | Comment | Method | Endpoint |
 |---------|--------|----------|
-| Register a customer or seller account (sellers pass `role: "seller"` + `businessName`, gets a Seller profile) | POST | `/register` |
-| Login with email and password | POST | `/login` |
+| Register a customer or seller account (sellers pass `role: "seller"` + `businessName`, gets an unverified Seller profile and an approval request goes to admins — no session until approved) | POST | `/register` |
+| Login with email and password (sellers can't log in until an admin approves their application) | POST | `/login` |
 | Logout — clear tokens | POST | `/logout` |
 | Refresh access token | POST | `/refresh` |
 | Google OAuth login or register | POST | `/google` |
@@ -199,8 +199,13 @@ All routes require auth + admin role.
 | Deactivate user account | PUT | `/users/:id/deactivate` |
 | List all sellers | GET | `/sellers` |
 | Get single seller detail with store | GET | `/sellers/:id` |
-| Verify a seller | PUT | `/sellers/:id/verify` |
+| Verify (approve) a seller | PUT | `/sellers/:id/verify` |
+| Reject a seller application with reason | PUT | `/sellers/:id/reject` |
 | Deactivate a seller | PUT | `/sellers/:id/deactivate` |
+| Get admin notifications (approval requests) | GET | `/notifications` |
+| Mark all admin notifications as read | PUT | `/notifications/read-all` |
+| Mark an admin notification as read | PUT | `/notifications/:id/read` |
+| Delete an admin notification | DELETE | `/notifications/:id` |
 | Get moderation queue | GET | `/products/moderation` |
 | List all products | GET | `/products` |
 | Approve a pending product | PUT | `/products/:id/approve` |
@@ -221,7 +226,7 @@ All routes require auth + admin role.
 | Get daily revenue data for charts | GET | `/analytics/revenue` |
 | Get top sellers ranked by revenue | GET | `/analytics/top-sellers` |
 | Get top products by units sold | GET | `/analytics/top-products` |
-| Get platform-wide overview | GET | `/analytics` |
+| Get platform-wide overview (incl. pending seller applications) | GET | `/analytics` |
 
 ### Delivery (`/api/delivery`) — 8 endpoints
 All routes require auth + delivery role.
@@ -237,13 +242,14 @@ All routes require auth + delivery role.
 | Accept an order | PUT | `/orders/:id/accept` |
 | Mark order as delivered | PUT | `/orders/:id/deliver` |
 
-### AI Gemini (`/api/ai`) — 4 endpoints
-Gemini-powered product copywriting, semantic search, and behavior recommendations.
-See **[`docs/AI_INTEGRATION.md`](docs/AI_INTEGRATION.md)** for full setup.
+### AI Gemini (`/api/ai`) — 5 endpoints
+Gemini-powered product copywriting, the Ask-AI description assistant, semantic search,
+and behavior recommendations. See **[`docs/AI_INTEGRATION.md`](docs/AI_INTEGRATION.md)** for full setup.
 
 | Comment | Method | Endpoint | Auth |
 |---------|--------|----------|------|
-| Generate product description + 4-6 selling points (Gemini) | POST | `/product-description` | 🔒 seller |
+| Generate product description + 4-6 selling points (Gemini, image-aware) | POST | `/product-description` | 🔒 seller |
+| Ask-AI description assistant chat (product context + image) | POST | `/product-description/chat` | 🔒 seller |
 | Semantic search (vector, falls back to keyword) | GET | `/search?q=...` | public |
 | Log user behavior event (VIEW/CLICK/SEARCH/WISHLIST/ADD_TO_CART/PURCHASE) | POST | `/events` | 🔒 any user |
 | Behavior-based recommendations (popular fallback) | GET | `/recommendations` | 🔒 any user |
@@ -339,8 +345,11 @@ All role tokens are captured automatically from the named `loginCustomer` / `log
 run the register request once, then the matching login, and the token flows into every request that needs it.
 Customers and **sellers** both register through `POST /api/auth/register` — sellers pass
 `role: "seller"` + `businessName`, which creates their Seller profile automatically
-(unverified until an admin verifies them). Only staff roles (admin/delivery/support) have no
-public registration — seed those in the DB (see the bootstrap inside `test-api.mjs`).
+(**pending** until an admin decides, so login is blocked with 403 until then). Admins get a
+`seller_pending_approval` notification; they approve via `PUT /api/admin/sellers/:sellerId/verify`
+or reject with a mandatory reason via `PUT /api/admin/sellers/:sellerId/reject` (both notify
+the seller; a rejected seller can be approved later). Only staff roles (admin/delivery/support)
+have no public registration — seed those in the DB (see the bootstrap inside `test-api.mjs`).
 
 **`test-api.mjs`** — automated end-to-end runner (153 assertions) that boots all five roles,
 exercises every module (auth, customers, cart, orders, reviews, coupons, seller store/products/orders/

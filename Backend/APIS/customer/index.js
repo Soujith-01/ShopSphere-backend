@@ -10,6 +10,8 @@ import users from "./users.js";
 import notifications from "./notifications.js";
 import support from "./support.js";
 import payments from "./payments.js";
+import messages from "./messages.js";
+import returns from "./returns.js";
 
 const router = Router();
 
@@ -24,5 +26,7 @@ router.use("/users", users);
 router.use("/notifications", notifications);
 router.use("/support", support);
 router.use("/payments", payments);
+router.use("/messages", messages);
+router.use("/returns", returns);
 
 export default router;

@@ -41,7 +41,10 @@ Content-Type: application/json
   "businessType": "individual"
 }
 ```
-> Seller starts unverified — an admin verifies via `PUT /api/admin/sellers/:sellerId/verify`.
+> Seller starts **pending** — an approval request is sent to admins and login is blocked (403)
+> until an admin approves via `PUT /api/admin/sellers/:sellerId/verify` or rejects via
+> `PUT /api/admin/sellers/:sellerId/reject` (reason required). The register response
+> includes `requiresApproval: true` and **no** session/accessToken.
 > Only customers and sellers can self-register; admin/delivery/support are staff roles.
 
 ### Login
@@ -487,7 +490,10 @@ Content-Type: application/json
 
 ## 🏪 SELLER — `/api/seller`
 > All seller routes require `protect` + `requireSeller` middleware.
-> Sellers register publicly via `/api/auth/register` with `role: "seller"` + `businessName`.
+> Sellers register publicly via `/api/auth/register` with `role: "seller"` + `businessName`,
+> then must be approved by an admin (`PUT /api/admin/sellers/:sellerId/verify`) before they
+> can log in or call any seller route. Rejected applications (`.../reject`) stay locked out
+> until approved.
 
 ### Products
 
@@ -802,9 +808,47 @@ GET /api/admin/sellers/<sellerId>
 Authorization: Bearer <admin_token>
 ```
 
-#### Verify a Seller
+#### Verify (Approve) a Seller
 ```http
 PUT /api/admin/sellers/<sellerId>/verify
+Authorization: Bearer <admin_token>
+```
+> Sets `status: "approved"`, clears any rejection, notifies the seller, and unlocks login.
+
+#### Reject a Seller Application
+```http
+PUT /api/admin/sellers/<sellerId>/reject
+Authorization: Bearer <admin_token>
+Content-Type: application/json
+
+{
+  "reason": "Incomplete business documents"
+}
+```
+> `reason` is required (max 500 chars). Sets `status: "rejected"`, stores the reason, notifies
+> the seller, and keeps login blocked. A rejected seller can be approved later via `/verify`.
+
+#### Admin Notifications (Seller Approval Requests)
+```http
+GET /api/admin/notifications?unreadOnly=true&page=1&limit=20
+Authorization: Bearer <admin_token>
+```
+
+#### Mark All Admin Notifications Read
+```http
+PUT /api/admin/notifications/read-all
+Authorization: Bearer <admin_token>
+```
+
+#### Mark One Admin Notification Read
+```http
+PUT /api/admin/notifications/<notificationId>/read
+Authorization: Bearer <admin_token>
+```
+
+#### Delete an Admin Notification
+```http
+DELETE /api/admin/notifications/<notificationId>
 Authorization: Bearer <admin_token>
 ```
 

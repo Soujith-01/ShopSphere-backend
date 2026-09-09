@@ -29,7 +29,10 @@ const notificationSchema = new mongoose.Schema(
         "product_approved",
         "product_rejected",
         "seller_approved",
+        "seller_rejected",
+        "seller_pending_approval",
         "support_reply",
+        "new_message",
         "coupon_available",
         "system",
       ],
@@ -43,7 +46,7 @@ const notificationSchema = new mongoose.Schema(
     data: {
       entityType: {
         type: String,
-        enum: ["order", "product", "review", "ticket", "coupon", "seller"],
+        enum: ["order", "product", "review", "ticket", "coupon", "seller", "conversation"],
       },
       entityId: { type: mongoose.Schema.Types.ObjectId },
     },

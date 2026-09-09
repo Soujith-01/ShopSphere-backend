@@ -19,7 +19,8 @@ No AI code exists on the frontend, and the API key never leaves the server.
 
 ```env
 GEMINI_API_KEY=your_key_here
-GEMINI_TEXT_MODEL=gemini-2.0-flash
+GEMINI_TEXT_MODEL=gemini-3.5-flash
+GEMINI_FALLBACK_MODELS=gemini-3.6-flash,gemini-3.7-flash
 GEMINI_EMBEDDING_MODEL=text-embedding-004
 GEMINI_EMBEDDING_DIMENSIONS=768
 GEMINI_TEXT_TIMEOUT_MS=20000
@@ -30,12 +31,22 @@ ATLAS_VECTOR_INDEX_NAME=product_embedding_index
 | Variable | Purpose | Default |
 |---|---|---|
 | `GEMINI_API_KEY` | Google AI Studio API key (never exposed to clients) | — (empty = AI disabled) |
-| `GEMINI_TEXT_MODEL` | Model for description generation | `gemini-2.0-flash` |
+| `GEMINI_TEXT_MODEL` | Primary model for description generation | `gemini-3.5-flash` |
+| `GEMINI_FALLBACK_MODELS` | Comma-separated extra models to try when the primary is overloaded/unavailable | `gemini-3.6-flash,gemini-3.7-flash` |
 | `GEMINI_EMBEDDING_MODEL` | Model for embeddings | `text-embedding-004` |
 | `GEMINI_EMBEDDING_DIMENSIONS` | **Pinned** output dimension — must equal the Atlas vector index dimension | 768 for `text-embedding-004` |
-| `GEMINI_TEXT_TIMEOUT_MS` | Max time for a text call | 20000 |
+| `GEMINI_TEXT_TIMEOUT_MS` | Max time for a single text call | 20000 |
 | `GEMINI_EMBEDDING_TIMEOUT_MS` | Max time for an embedding call | 15000 |
 | `ATLAS_VECTOR_INDEX_NAME` | Name of the Atlas vector search index | `product_embedding_index` |
+
+**Resilience (description + chat endpoints):** Gemini text calls retry transient failures
+(429/500/503 "high demand", timeouts) and fall through a model chain — primary first,
+then known-good defaults (`gemini-3.1-flash-lite`, `gemini-3.5-flash`, `gemini-3.7-flash`,
+`gemini-flash-lite-latest`), then `GEMINI_FALLBACK_MODELS` — bounded to 5 total calls.
+Responses are parsed tolerantly (markdown code fences, prose around the JSON, and raw
+newlines inside string values are all handled). If every model is overloaded you get a
+clean 502 with a friendly "AI service is busy" message; if the account quota is exhausted
+the message says so explicitly (`AI_QUOTA`).
 
 > **Dimension warning:** `text-embedding-004` outputs **768** dims, `gemini-embedding-001`
 > outputs **3072**. The `GEMINI_EMBEDDING_DIMENSIONS` value **must match** the
@@ -86,12 +97,20 @@ Request:
   "brand": "Nike",
   "category": "Sports",
   "attributes": { "color": "Black", "material": "Mesh" },
-  "features": ["Lightweight", "Breathable", "Cushioned sole"]
+  "features": ["Lightweight", "Breathable", "Cushioned sole"],
+  "tags": ["running", "sneakers"],
+  "imageUrl": "https://res.cloudinary.com/.../product.jpg"
 }
 ```
 
 `attributes` also accepts `[{ "name": "color", "value": "Black" }]`. `brand`, `category`,
-`attributes`, and `features` are optional; `name` is required.
+`attributes`, `features`, `tags`, and `imageUrl` are optional; `name` is required.
+
+`imageUrl` (a Cloudinary URL from the seller product form) is fetched server-side by
+`services/ai/image.js` and sent to Gemini as an image part so the model can also read
+visible product details. If the image can't be fetched (bad URL, timeout, non-image,
+>10 MB), the request **degrades gracefully to text-only** — it never fails because of
+the image.
 
 Response:
 
@@ -112,6 +131,57 @@ Prompt rules (enforced in `services/ai/description.js`):
 - Exactly **4–6** selling points (deduped + capped at 6)
 
 Both the request and the Gemini response are validated; malformed output → 502.
+
+### Feature 1b — Ask-AI description assistant
+
+```
+POST /api/ai/product-description/chat
+Authorization: Bearer <seller JWT>
+Content-Type: application/json
+```
+
+Auth: **seller only** (`protect` + `requireSeller`). Rate limit: **30 requests / 15 min / IP**.
+
+The small chatbot beside the description field on the seller product form. Every request
+carries the **current product context + optional image** plus the recent conversation
+history, so answers stay grounded in the actual product.
+
+Request:
+
+```json
+{
+  "message": "Make it more professional",
+  "product": {
+    "name": "Running Shoes",
+    "category": "Sports",
+    "description": "Comfortable running shoes.",
+    "brand": "Nike",
+    "attributes": [{ "name": "color", "value": "Black" }],
+    "features": ["Lightweight"],
+    "tags": ["running"]
+  },
+  "history": [
+    { "role": "user", "content": "Write a description" },
+    { "role": "assistant", "content": "Lightweight shoes..." }
+  ],
+  "imageUrl": "https://res.cloudinary.com/.../product.jpg"
+}
+```
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": { "reply": "Engineered for comfort, these running shoes..." }
+}
+```
+
+- `message` is required (max 1000 chars); `product`, `history` (max 20 turns,
+  roles `user`/`assistant`), and `imageUrl` are optional.
+- The system prompt (`services/ai/chat.js`) tells Gemini to use **only** the supplied
+  product info + image and never invent facts.
+- `history` is capped at the last 10 turns server-side.
 
 ---
 

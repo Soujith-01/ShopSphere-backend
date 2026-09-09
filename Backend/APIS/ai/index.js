@@ -6,8 +6,12 @@ import { requireSeller } from "../../middlewares/sellerMiddleware.js";
 import { validate } from "../../middlewares/validateMiddleware.js";
 import { isGeminiConfigured } from "../../config/gemini.js";
 import { generateProductDescription } from "../../services/ai/description.js";
+import { generateDescriptionChat } from "../../services/ai/chat.js";
+import { fetchImageAsBase64 } from "../../services/ai/image.js";
 import { searchProducts } from "../../services/ai/search.js";
+import { getSearchSuggestions } from "../../services/ai/suggestions.js";
 import { getRecommendations } from "../../services/ai/recommendations.js";
+import { naturalSearch } from "../../services/ai/naturalSearch.js";
 import UserEvent from "../../models/UserEvent.js";
 import Product from "../../models/Product.js";
 
@@ -34,10 +38,42 @@ const requireAI = (req, res, next) => {
   next();
 };
 
+// Shared validation for the optional product data block (used by the
+// description generator and the Ask-AI chat endpoint).
+const productDataValidation = [
+  body("brand").optional().trim().isLength({ max: 100 }).withMessage("Brand must be at most 100 characters"),
+  body("category").optional().trim().isLength({ max: 100 }).withMessage("Category must be at most 100 characters"),
+  body("attributes")
+    .optional()
+    .custom((v) => {
+      if (v === null || typeof v !== "object") return false;
+      if (Array.isArray(v)) {
+        return v.every(
+          (a) =>
+            a &&
+            typeof a === "object" &&
+            typeof a.name === "string" &&
+            a.name.length <= 100 &&
+            typeof a.value === "string" &&
+            a.value.length <= 200
+        );
+      }
+      return Object.values(v).every((val) => typeof val === "string" && val.length <= 200);
+    })
+    .withMessage("attributes must be an object or an array of { name, value } (max 200 chars per value)"),
+  body("features").optional().isArray({ max: 20 }).withMessage("features must be an array of max 20 items"),
+  body("features.*").isString().isLength({ max: 200 }).withMessage("Each feature must be a string (max 200 chars)"),
+  body("tags").optional().isArray({ max: 20 }).withMessage("tags must be an array of max 20 items"),
+  body("tags.*").isString().isLength({ max: 100 }).withMessage("Each tag must be a string (max 100 chars)"),
+];
+
 // ---------------------------------------------------------------------------
 // POST /api/ai/product-description
 // Generate a professional product description + 4-6 selling points with Gemini.
 // Only authenticated SELLERS. Uses ONLY the supplied product data — no invented facts.
+// Optional `imageUrl` (a Cloudinary URL from the product form) is fetched
+// server-side and sent to Gemini as an image part; if it can't be fetched the
+// request degrades gracefully to text-only.
 // ---------------------------------------------------------------------------
 router.post(
   "/product-description",
@@ -51,9 +87,59 @@ router.post(
       .withMessage("Product name is required")
       .isLength({ max: 200 })
       .withMessage("Name must be at most 200 characters"),
-    body("brand").optional().trim().isLength({ max: 100 }).withMessage("Brand must be at most 100 characters"),
-    body("category").optional().trim().isLength({ max: 100 }).withMessage("Category must be at most 100 characters"),
-    body("attributes")
+    ...productDataValidation,
+    body("imageUrl").optional().trim().isLength({ max: 500 }).withMessage("imageUrl must be at most 500 characters"),
+  ],
+  validate,
+  requireAI,
+  async (req, res) => {
+    const { name, brand = "", category = "", attributes = {}, features = [], tags = [], imageUrl = "" } = req.body;
+
+    const image = await fetchImageAsBase64(imageUrl);
+    const result = await generateProductDescription({
+      name,
+      brand,
+      category,
+      attributes,
+      features,
+      tags,
+      image,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        description: result.description,
+        sellingPoints: result.sellingPoints,
+      },
+    });
+  }
+);
+
+// ---------------------------------------------------------------------------
+// POST /api/ai/product-description/chat
+// Ask-AI assistant for the seller product form. The seller chats with Gemini
+// ("make it shorter", "add selling points", …) with the current product fields
+// and image as context. Returns a plain-text reply the seller can apply.
+// ---------------------------------------------------------------------------
+router.post(
+  "/product-description/chat",
+  aiLimiter(15 * 60 * 1000, 30, "Too many AI chat requests. Try again later."),
+  protect,
+  requireSeller,
+  [
+    body("message")
+      .trim()
+      .notEmpty()
+      .withMessage("Message is required")
+      .isLength({ max: 1000 })
+      .withMessage("Message must be at most 1000 characters"),
+    body("product").optional().isObject().withMessage("product must be an object"),
+    body("product.name").optional().trim().isLength({ max: 200 }).withMessage("Product name must be at most 200 characters"),
+    body("product.description").optional().trim().isLength({ max: 4000 }).withMessage("Description must be at most 4000 characters"),
+    body("product.brand").optional().trim().isLength({ max: 100 }).withMessage("Brand must be at most 100 characters"),
+    body("product.category").optional().trim().isLength({ max: 100 }).withMessage("Category must be at most 100 characters"),
+    body("product.attributes")
       .optional()
       .custom((v) => {
         if (v === null || typeof v !== "object") return false;
@@ -70,23 +156,27 @@ router.post(
         }
         return Object.values(v).every((val) => typeof val === "string" && val.length <= 200);
       })
-      .withMessage("attributes must be an object or an array of { name, value } (max 200 chars per value)"),
-    body("features").optional().isArray({ max: 20 }).withMessage("features must be an array of max 20 items"),
-    body("features.*").isString().isLength({ max: 200 }).withMessage("Each feature must be a string (max 200 chars)"),
+      .withMessage("product.attributes must be an object or an array of { name, value } (max 200 chars per value)"),
+    body("product.features").optional().isArray({ max: 20 }).withMessage("product.features must be an array of max 20 items"),
+    body("product.features.*").isString().isLength({ max: 200 }).withMessage("Each feature must be a string (max 200 chars)"),
+    body("product.tags").optional().isArray({ max: 20 }).withMessage("product.tags must be an array of max 20 items"),
+    body("product.tags.*").isString().isLength({ max: 100 }).withMessage("Each tag must be a string (max 100 chars)"),
+    body("history").optional().isArray({ max: 20 }).withMessage("history must be an array of max 20 items"),
+    body("history.*.role").isIn(["user", "assistant"]).withMessage("history role must be 'user' or 'assistant'"),
+    body("history.*.content").isString().isLength({ max: 2000 }).withMessage("Each history message must be at most 2000 characters"),
+    body("imageUrl").optional().trim().isLength({ max: 500 }).withMessage("imageUrl must be at most 500 characters"),
   ],
   validate,
   requireAI,
   async (req, res) => {
-    const { name, brand = "", category = "", attributes = {}, features = [] } = req.body;
+    const { message, product = {}, history = [], imageUrl = "" } = req.body;
 
-    const result = await generateProductDescription({ name, brand, category, attributes, features });
+    const image = await fetchImageAsBase64(imageUrl);
+    const reply = await generateDescriptionChat({ message, product, history, image });
 
     res.json({
       success: true,
-      data: {
-        description: result.description,
-        sellingPoints: result.sellingPoints,
-      },
+      data: { reply },
     });
   }
 );
@@ -146,6 +236,26 @@ router.get(
       pagination: result.pagination,
       searchMode: result.searchMode,
     });
+  }
+);
+
+// ---------------------------------------------------------------------------
+// GET /api/ai/search-suggestions?q=<partial>&limit=<n>
+// Search autocomplete: Gemini generates product search phrases for a partial
+// query. Gracefully falls back to real catalog names if AI is unavailable.
+// ---------------------------------------------------------------------------
+router.get(
+  "/search-suggestions",
+  aiLimiter(60 * 1000, 60, "Too many suggestion requests. Try again later."),
+  [
+    query("q").trim().notEmpty().withMessage("q (partial query) is required").isLength({ max: 100 }).withMessage("Query must be at most 100 characters"),
+    query("limit").optional().isInt({ min: 1, max: 10 }).withMessage("limit must be an integer 1-10"),
+  ],
+  validate,
+  async (req, res) => {
+    const { q, limit = 6 } = req.query;
+    const suggestions = await getSearchSuggestions({ query: q, limit: Number(limit) });
+    res.json({ success: true, data: suggestions });
   }
 );
 
@@ -219,6 +329,42 @@ router.get(
       data: result.products,
       pagination: result.pagination,
       source: result.source, // "behavior" | "popular"
+    });
+  }
+);
+
+// ---------------------------------------------------------------------------
+// POST /api/ai/natural-search
+// Natural language product search: "headphones for gaming under 3000"
+// → Gemini parses into filters → actual database search → results.
+// Never invents products — only searches what exists in the catalog.
+// ---------------------------------------------------------------------------
+router.post(
+  "/natural-search",
+  aiLimiter(60 * 1000, 20, "Too many AI search requests. Try again later."),
+  protect,
+  [
+    body("query")
+      .trim()
+      .notEmpty()
+      .withMessage("query is required")
+      .isLength({ max: 300 })
+      .withMessage("Query must be at most 300 characters"),
+    body("page").optional().isInt({ min: 1 }).withMessage("page must be an integer >= 1"),
+    body("limit").optional().isInt({ min: 1, max: 50 }).withMessage("limit must be an integer 1-50"),
+  ],
+  validate,
+  async (req, res) => {
+    const { query, page = 1, limit = 20 } = req.body;
+
+    const result = await naturalSearch({ query, page, limit });
+
+    res.json({
+      success: true,
+      data: result.products,
+      pagination: result.pagination,
+      searchMode: result.searchMode,
+      parsedQuery: result.parsedQuery,
     });
   }
 );

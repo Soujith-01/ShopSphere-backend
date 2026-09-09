@@ -9,6 +9,7 @@ import dashboard from "./dashboard.js";
 import wallet from "./wallet.js";
 import notifications from "./notifications.js";
 import uploads from "./uploads.js";
+import messages from "./messages.js";
 
 const router = Router();
 router.use(protect, requireSeller);
@@ -21,5 +22,6 @@ router.use("/dashboard", dashboard);
 router.use("/wallet", wallet);
 router.use("/notifications", notifications);
 router.use("/uploads", uploads);
+router.use("/messages", messages);
 
 export default router;

@@ -8,6 +8,36 @@ import { protect } from "../../middlewares/authMiddleware.js";
 const router = Router();
 router.use(protect);
 
+// Get all my reviews across all products
+router.get("/my", async (req, res) => {
+    const { page = 1, limit = 20 } = req.query;
+    const pageNum = Math.max(1, Number(page));
+    const limitNum = Math.min(50, Math.max(1, Number(limit)));
+
+    const [reviews, total] = await Promise.all([
+        Review.find({ user: req.user._id })
+            .sort({ createdAt: -1 })
+            .skip((pageNum - 1) * limitNum)
+            .limit(limitNum)
+            .populate("product", "name slug images")
+            .populate("order", "orderNumber")
+            .lean(),
+        Review.countDocuments({ user: req.user._id }),
+    ]);
+
+    res.json({
+        success: true,
+        data: reviews,
+        pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+    });
+});
+
+// Get the current user's review for a product (null if they haven't reviewed it)
+router.get("/my/:productId", async (req, res) => {
+    const review = await Review.findOne({ product: req.params.productId, user: req.user._id }).lean();
+    res.json({ success: true, data: review || null });
+});
+
 // Get reviews for a product with pagination and sort
 router.get("/product/:productId", async (req, res) => {
     const { page = 1, limit = 10, rating, sort = "newest" } = req.query;

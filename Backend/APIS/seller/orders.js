@@ -17,7 +17,8 @@ router.get("/", async (req, res) => {
 
     const [orders, total] = await Promise.all([
       Order.find(filter).sort({ createdAt: -1 }).skip((pageNum - 1) * limitNum).limit(limitNum)
-        .populate("customer", "name email phone").populate("store", "name slug").lean(),
+        .populate("customer", "name email phone").populate("store", "name slug")
+        .populate("deliveryPartner", "name phone email deliveryPartner.vehicleType").lean(),
       Order.countDocuments(filter),
     ]);
 
@@ -50,7 +51,7 @@ router.get("/:orderId", async (req, res) => {
     const order = await Order.findOne({ _id: req.params.orderId, seller: req.seller._id })
       .populate("customer", "name email phone").populate("store", "name slug")
       .populate("items.product", "name slug images").populate("items.variant", "label sku")
-      .populate("deliveryPartner", "name phone");
+      .populate("deliveryPartner", "name phone email deliveryPartner.vehicleType");
     if (!order) return res.status(404).json({ success: false, message: "Order not found" });
     res.json({ success: true, data: order });
 });
@@ -61,7 +62,10 @@ router.put("/:orderId/status", async (req, res) => {
 
     const validTransitions = {
       placed: ["confirmed", "cancelled"], confirmed: ["packed", "cancelled"],
-      packed: ["shipped"], shipped: ["out_for_delivery"], out_for_delivery: ["delivered"],
+      packed: ["shipped"],
+      // shipped → out_for_delivery and out_for_delivery → delivered are handled
+      // exclusively by the delivery partner via /api/delivery/orders/:id/accept
+      // and /api/delivery/orders/:id/deliver.
     };
 
     const order = await Order.findOne({ _id: req.params.orderId, seller: req.seller._id });

@@ -3,6 +3,8 @@ import Product from "../../models/Product.js";
 import Variant from "../../models/Variant.js";
 import Review from "../../models/Review.js";
 import Category from "../../models/Category.js";
+import Conversation from "../../models/Conversation.js";
+import Message from "../../models/Message.js";
 
 const router = Router();
 
@@ -87,6 +89,40 @@ router.get("/category/:categorySlug", async (req, res) => {
     ]);
 
     res.json({ success: true, data: { category, products }, pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) } });
+});
+
+// Get the public Q&A for a product: every customer can see the questions
+// asked by other customers and the sellers' answers.
+router.get("/:slug/qa", async (req, res) => {
+    const product = await Product.findOne({ slug: req.params.slug, status: "active" }).select("_id");
+    if (!product) return res.status(404).json({ success: false, message: "Product not found" });
+
+    const conversations = await Conversation.find({ product: product._id })
+      .populate("customer", "name")
+      .sort({ lastMessageAt: -1 })
+      .lean();
+
+    const threads = [];
+    for (const c of conversations) {
+      const messages = await Message.find({ conversation: c._id })
+        .sort({ createdAt: 1 })
+        .select("sender text createdAt")
+        .lean();
+      if (messages.length === 0) continue;
+
+      threads.push({
+        _id: c._id,
+        customerName: c.customer?.name || "Customer",
+        askedAt: c.createdAt,
+        messages: messages.map((m) => ({
+          senderRole: String(c.customer?._id) === String(m.sender) ? "customer" : "seller",
+          text: m.text,
+          createdAt: m.createdAt,
+        })),
+      });
+    }
+
+    res.json({ success: true, data: threads });
 });
 
 // Get single product detail by slug with variants and review summary

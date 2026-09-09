@@ -1,8 +1,14 @@
 import { Router } from "express";
 import Order from "../../models/Order.js";
 import User from "../../models/User.js";
+import Product from "../../models/Product.js";
+import Seller from "../../models/Seller.js";
+import Wallet from "../../models/Wallet.js";
+import WalletTransaction from "../../models/WalletTransaction.js";
 import Notification from "../../models/Notification.js";
 import { protect, authorize } from "../../middlewares/authMiddleware.js";
+
+const PLATFORM_COMMISSION_PERCENT = 10;
 
 const router = Router();
 router.use(protect, authorize("delivery"));
@@ -93,6 +99,7 @@ router.put("/orders/:orderId/accept", async (req, res) => {
     await order.save();
 
     await Notification.create({ recipient: order.customer, type: "order_shipped", title: "Out for Delivery", message: `Order ${order.orderNumber} is out for delivery`, data: { entityType: "order", entityId: order._id } });
+    await Notification.create({ recipient: order.seller, type: "order_shipped", title: "Order Out for Delivery", message: `Order ${order.orderNumber} has been picked up by a delivery partner and is on its way to the customer.`, data: { entityType: "order", entityId: order._id } });
     res.json({ success: true, message: "Order accepted", data: order });
 });
 
@@ -109,6 +116,48 @@ router.put("/orders/:orderId/deliver", async (req, res) => {
     if (!order.payment.paidAt) order.payment.paidAt = new Date();
     order.statusHistory.push({ status: "delivered", note: req.body.note || "Delivered successfully", changedBy: req.user._id });
     await order.save();
+
+    // Update product stats (totalSold, totalRevenue) for each item
+    for (const item of order.items) {
+      await Product.findByIdAndUpdate(item.product, {
+        $inc: { "stats.totalSold": item.quantity, "stats.totalRevenue": item.total },
+      });
+    }
+
+    // For COD orders, update seller stats and credit wallet (online orders
+    // are already handled by the payment-verification flow).
+    if (order.payment.method === "cod") {
+      const seller = await Seller.findById(order.seller);
+      if (seller) {
+        const grossAmount = order.total;
+        const commissionPercent = seller.commissionRate || PLATFORM_COMMISSION_PERCENT;
+        const platformFee = Math.round((grossAmount * commissionPercent) / 100);
+        const sellerAmount = grossAmount - platformFee;
+
+        let wallet = await Wallet.findOne({ seller: seller._id });
+        if (!wallet) {
+          wallet = new Wallet({ seller: seller._id, balance: 0, totalEarned: 0, totalWithdrawn: 0 });
+        }
+        wallet.balance += sellerAmount;
+        wallet.totalEarned += sellerAmount;
+        await wallet.save();
+
+        await WalletTransaction.create({
+          seller: seller._id,
+          order: order._id,
+          grossAmount,
+          platformFee,
+          sellerAmount,
+          transactionType: "credit",
+          status: "completed",
+          description: `COD payment received for order ${order.orderNumber}`,
+        });
+
+        seller.stats.totalOrders += 1;
+        seller.stats.totalRevenue += grossAmount;
+        await seller.save();
+      }
+    }
 
     await Notification.create({ recipient: order.customer, type: "order_delivered", title: "Order Delivered", message: `Order ${order.orderNumber} has been delivered`, data: { entityType: "order", entityId: order._id } });
     await Notification.create({ recipient: order.seller, type: "order_delivered", title: "Order Delivered", message: `Order ${order.orderNumber} has been delivered`, data: { entityType: "order", entityId: order._id } });

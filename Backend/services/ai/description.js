@@ -11,7 +11,7 @@ const DESCRIPTION_SCHEMA = {
 };
 
 // Build the prompt. Rules: use ONLY supplied info, never invent facts.
-export function buildDescriptionPrompt({ name, brand, category, attributes, features }) {
+export function buildDescriptionPrompt({ name, brand, category, attributes, features, hasImage = false }) {
   const lines = [
     "You are an e-commerce copywriter. Write a product description and selling points.",
     "",
@@ -20,6 +20,13 @@ export function buildDescriptionPrompt({ name, brand, category, attributes, feat
     brand ? `- Brand: ${brand}` : null,
     category ? `- Category: ${category}` : null,
   ].filter(Boolean);
+
+  if (hasImage) {
+    lines.push(
+      "- A product image is attached above. You may describe clearly visible details from it",
+      "  (colors, shape, materials, visible features) — but still never invent facts."
+    );
+  }
 
   const attrList = Array.isArray(attributes) ? attributes : [];
   if (attrList.length) {
@@ -43,6 +50,17 @@ export function buildDescriptionPrompt({ name, brand, category, attributes, feat
   );
 
   return lines.join("\n");
+}
+
+// Build the Gemini request parts for a prompt + optional product image.
+// The image goes first so Gemini sees it as the subject of the prompt.
+export function buildDescriptionParts({ prompt, image }) {
+  const parts = [];
+  if (image && typeof image === "object" && image.data && image.mimeType) {
+    parts.push({ inlineData: { mimeType: image.mimeType, data: image.data } });
+  }
+  parts.push({ text: prompt });
+  return parts;
 }
 
 // Validate the parsed Gemini output; throws AIError if malformed.
@@ -70,18 +88,21 @@ export function validateDescriptionOutput(raw) {
 }
 
 // Generate description + selling points for structured product data.
+// `input.image` (optional) is { mimeType, data: base64 } from fetchImageAsBase64.
 // `deps` allows tests to inject a fake Gemini client ({ client }).
 export async function generateProductDescription(input, deps = {}) {
   if (!input || typeof input !== "object") {
     throw new AIError("Product data is required", "AI_INVALID_RESPONSE");
   }
 
-  const { name, brand = "", category = "", attributes = [], features = [] } = input;
+  const { name, brand = "", category = "", attributes = [], features = [], image = null } = input;
   if (!name || !String(name).trim()) {
     throw new AIError("Product name is required", "AI_INVALID_RESPONSE");
   }
 
-  const prompt = buildDescriptionPrompt({ name, brand, category, attributes, features });
-  const raw = await generateStructuredJSON({ prompt, schema: DESCRIPTION_SCHEMA, deps });
+  const hasImage = Boolean(image && image.data && image.mimeType);
+  const prompt = buildDescriptionPrompt({ name, brand, category, attributes, features, hasImage });
+  const parts = buildDescriptionParts({ prompt, image });
+  const raw = await generateStructuredJSON({ prompt, parts, schema: DESCRIPTION_SCHEMA, deps });
   return validateDescriptionOutput(raw);
 }

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import User from "../../models/User.js";
 import AuditLog from "../../models/AuditLog.js";
+import Notification from "../../models/Notification.js";
 
 const router = Router();
 
@@ -65,6 +66,19 @@ router.put("/:userId/deactivate", async (req, res) => {
 
     await AuditLog.create({ actor: req.user._id, actorRole: "admin", action: "user.deactivated", entityType: "user", entityId: user._id, description: `Admin deactivated user ${user.email}` });
     res.json({ success: true, message: "User deactivated" });
+});
+
+// Reactivate a deactivated user account
+router.put("/:userId/activate", async (req, res) => {
+    const user = await User.findById(req.params.userId);
+    if (!user) return res.status(404).json({ success: false, message: "User not found" });
+
+    user.isActive = true;
+    await user.save({ validateModifiedOnly: true });
+
+    await AuditLog.create({ actor: req.user._id, actorRole: "admin", action: "user.activated", entityType: "user", entityId: user._id, description: `Admin reactivated user ${user.email}` });
+
+    res.json({ success: true, message: "User reactivated", data: { ...user.toJSON() } });
 });
 
 export default router;
