@@ -3,6 +3,7 @@ import SupportTicket from "../../models/SupportTicket.js";
 import Notification from "../../models/Notification.js";
 import { generateTicketNumber } from "../../utils/helpers.js";
 import { protect } from "../../middlewares/authMiddleware.js";
+import { postTicketMessage, announceNewTicket } from "../../services/ticketChat.js";
 
 const router = Router();
 router.use(protect);
@@ -22,6 +23,16 @@ router.post("/tickets", async (req, res) => {
       order: orderId || null, product: productId || null, category, priority: priority || "medium",
       messages: [{ sender: req.user._id, senderRole: req.user.role || "customer", message }],
     });
+
+    // Real-time: ping the support queue so agents see the ticket without a
+    // refresh (best-effort — never fail the request over sockets).
+    try {
+      const io = req.app.get("io");
+      const connectedUsers = req.app.get("connectedUsers");
+      if (io && connectedUsers) await announceNewTicket({ io, connectedUsers, ticket });
+    } catch (err) {
+      console.error(`[Support] new-ticket broadcast failed: ${err.message}`);
+    }
 
     res.status(201).json({ success: true, message: "Ticket created", data: ticket });
 });
@@ -74,6 +85,19 @@ router.post("/tickets/:ticketId/messages", async (req, res) => {
 
     const attachments = (req.body.attachments || []).map((a) => ({ url: a.url, publicId: a.publicId }));
 
+    // Shared persistence + real-time broadcast (ticket:message + notification).
+    try {
+      const io = req.app.get("io");
+      const connectedUsers = req.app.get("connectedUsers");
+      if (io && connectedUsers) {
+        await postTicketMessage({ io, connectedUsers, ticket, senderId: req.user._id, senderRole: req.user.role || "customer", text: message, attachments });
+        return res.status(201).json({ success: true, data: ticket });
+      }
+    } catch (err) {
+      console.error(`[Support] ticket reply broadcast failed: ${err.message}`);
+    }
+
+    // Fallback (no socket context — e.g. tests without the app shell):
     ticket.messages.push({ sender: req.user._id, senderRole: req.user.role || "customer", message, attachments });
     if (ticket.status === "waiting_customer") ticket.status = "open";
     await ticket.save();

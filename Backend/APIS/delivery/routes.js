@@ -6,6 +6,7 @@ import Seller from "../../models/Seller.js";
 import Wallet from "../../models/Wallet.js";
 import WalletTransaction from "../../models/WalletTransaction.js";
 import Notification from "../../models/Notification.js";
+import ReturnRequest from "../../models/ReturnRequest.js";
 import { protect, authorize } from "../../middlewares/authMiddleware.js";
 
 const PLATFORM_COMMISSION_PERCENT = 10;
@@ -35,16 +36,17 @@ router.put("/location", async (req, res) => {
     res.json({ success: true, message: "Location updated" });
 });
 
-// Get delivery stats (total, active, today, monthly)
+// Get delivery stats (total, active, today, monthly, active returns)
 router.get("/stats", async (req, res) => {
     const partnerId = req.user._id;
-    const [totalDeliveries, activeDeliveries, todayDeliveries, completedThisMonth] = await Promise.all([
+    const [totalDeliveries, activeDeliveries, todayDeliveries, completedThisMonth, activeReturns] = await Promise.all([
       Order.countDocuments({ deliveryPartner: partnerId, status: "delivered" }),
       Order.countDocuments({ deliveryPartner: partnerId, status: "out_for_delivery" }),
       Order.countDocuments({ deliveryPartner: partnerId, deliveredAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) } }),
       Order.countDocuments({ deliveryPartner: partnerId, status: "delivered", deliveredAt: { $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) } }),
+      ReturnRequest.countDocuments({ deliveryPartner: partnerId, status: { $in: ["approved", "picked_up"] } }),
     ]);
-    res.json({ success: true, data: { totalDeliveries, activeDeliveries, todayDeliveries, completedThisMonth } });
+    res.json({ success: true, data: { totalDeliveries, activeDeliveries, todayDeliveries, completedThisMonth, activeReturns } });
 });
 
 // Browse available orders (shipped, no delivery partner assigned yet)
@@ -60,6 +62,14 @@ router.get("/orders/available", async (req, res) => {
       Order.countDocuments(filter),
     ]);
     res.json({ success: true, data: orders, pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) } });
+});
+
+// Orders randomly auto-assigned to me at ship time, waiting for me to start
+// the run (status still "shipped").
+router.get("/orders/assigned", async (req, res) => {
+    const orders = await Order.find({ deliveryPartner: req.user._id, status: "shipped" })
+      .sort({ createdAt: -1 }).populate("customer", "name phone").populate("seller", "businessName").populate("store", "name address").lean();
+    res.json({ success: true, data: orders });
 });
 
 // Get my active deliveries
@@ -84,7 +94,29 @@ router.get("/orders/history", async (req, res) => {
     res.json({ success: true, data: orders, pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) } });
 });
 
-// Accept an order (assign yourself as delivery partner)
+// Start a delivery that was randomly auto-assigned to this partner when the
+// seller shipped it. Moves shipped → out_for_delivery.
+router.put("/orders/:orderId/start", async (req, res) => {
+    const order = await Order.findById(req.params.orderId);
+    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+    if (order.deliveryPartner?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "This order is not assigned to you" });
+    }
+    if (order.status !== "shipped") {
+      return res.status(400).json({ success: false, message: `Cannot start a "${order.status}" order` });
+    }
+
+    order.status = "out_for_delivery";
+    order.statusHistory.push({ status: "out_for_delivery", note: "Delivery started by assigned partner", changedBy: req.user._id });
+    await order.save();
+
+    await Notification.create({ recipient: order.customer, type: "order_shipped", title: "Out for Delivery", message: `Order ${order.orderNumber} is out for delivery`, data: { entityType: "order", entityId: order._id } });
+    await Notification.create({ recipient: order.seller, type: "order_shipped", title: "Order Out for Delivery", message: `Order ${order.orderNumber} has been picked up by the delivery partner and is on its way to the customer.`, data: { entityType: "order", entityId: order._id } });
+    res.json({ success: true, message: "Delivery started", data: order });
+});
+
+// Accept an unassigned shipped order (manual fallback when no agent was on
+// duty at ship time — or a partner prefers a specific shipment).
 router.put("/orders/:orderId/accept", async (req, res) => {
     const order = await Order.findById(req.params.orderId);
     if (!order) return res.status(404).json({ success: false, message: "Order not found" });
@@ -162,6 +194,181 @@ router.put("/orders/:orderId/deliver", async (req, res) => {
     await Notification.create({ recipient: order.customer, type: "order_delivered", title: "Order Delivered", message: `Order ${order.orderNumber} has been delivered`, data: { entityType: "order", entityId: order._id } });
     await Notification.create({ recipient: order.seller, type: "order_delivered", title: "Order Delivered", message: `Order ${order.orderNumber} has been delivered`, data: { entityType: "order", entityId: order._id } });
     res.json({ success: true, message: "Order delivered", data: order });
+});
+
+// Helper to resolve seller's user ID for notifications
+const getSellerUserId = async (sellerId) => {
+    if (!sellerId) return null;
+    const sellerDoc = await Seller.findById(sellerId).lean();
+    if (sellerDoc?.user) return sellerDoc.user;
+    return sellerId;
+};
+
+// -------------------------------------------------------------
+// RETURN PICKUP & STORE RETURN ROUTES
+// -------------------------------------------------------------
+
+// Get active return pickups assigned to this delivery partner
+router.get("/returns/active", async (req, res) => {
+    const returns = await ReturnRequest.find({
+        deliveryPartner: req.user._id,
+        status: { $in: ["approved", "picked_up"] },
+    })
+      .sort({ updatedAt: -1 })
+      .populate("customer", "name phone email address")
+      .populate("seller", "businessName storeName phone address")
+      .populate("order", "orderNumber shippingAddress")
+      .populate("product", "title name images price")
+      .lean();
+    res.json({ success: true, data: returns });
+});
+
+// Browse available returns (approved, awaiting partner pickup assignment)
+router.get("/returns/available", async (req, res) => {
+    const { page = 1, limit = 20 } = req.query;
+    const filter = { status: "approved", deliveryPartner: null };
+    const pageNum = Math.max(1, Number(page));
+    const limitNum = Math.min(50, Math.max(1, Number(limit)));
+
+    const [returns, total] = await Promise.all([
+      ReturnRequest.find(filter)
+        .sort({ createdAt: -1 })
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum)
+        .populate("customer", "name phone address")
+        .populate("seller", "businessName storeName phone address")
+        .populate("order", "orderNumber shippingAddress")
+        .populate("product", "title name images price")
+        .lean(),
+      ReturnRequest.countDocuments(filter),
+    ]);
+    res.json({
+      success: true,
+      data: returns,
+      pagination: { page: pageNum, limit: limitNum, total, pages: Math.ceil(total / limitNum) },
+    });
+});
+
+// Accept an unassigned return pickup
+router.put("/returns/:returnId/accept", async (req, res) => {
+    const returnReq = await ReturnRequest.findById(req.params.returnId);
+    if (!returnReq) return res.status(404).json({ success: false, message: "Return request not found" });
+    if (returnReq.status !== "approved") {
+      return res.status(400).json({ success: false, message: `Cannot accept return in "${returnReq.status}" status` });
+    }
+    if (returnReq.deliveryPartner && returnReq.deliveryPartner.toString() !== req.user._id.toString()) {
+      return res.status(400).json({ success: false, message: "Return pickup already assigned to another partner" });
+    }
+
+    returnReq.deliveryPartner = req.user._id;
+    returnReq.statusHistory.push({
+      status: returnReq.status,
+      note: `Delivery partner ${req.user.name || "assigned"} accepted return pickup`,
+      changedBy: req.user._id,
+    });
+    await returnReq.save();
+
+    res.json({ success: true, message: "Return pickup accepted", data: returnReq });
+});
+
+// Mark return package as picked up from customer
+router.put("/returns/:returnId/pickup", async (req, res) => {
+    const returnReq = await ReturnRequest.findById(req.params.returnId);
+    if (!returnReq) return res.status(404).json({ success: false, message: "Return request not found" });
+
+    // Allow pickup if assigned or unassigned approved
+    if (returnReq.deliveryPartner && returnReq.deliveryPartner.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "Not assigned to this return pickup" });
+    }
+    if (!returnReq.deliveryPartner) {
+      returnReq.deliveryPartner = req.user._id;
+    }
+
+    if (returnReq.status !== "approved") {
+      return res.status(400).json({ success: false, message: `Cannot pick up return in "${returnReq.status}" status` });
+    }
+
+    returnReq.status = "picked_up";
+    returnReq.pickedUpAt = new Date();
+    returnReq.statusHistory.push({
+      status: "picked_up",
+      note: req.body.note || "Picked up from customer by delivery partner",
+      changedBy: req.user._id,
+    });
+    await returnReq.save();
+
+    // If there is an order, update order status if applicable
+    if (returnReq.order) {
+      const order = await Order.findById(returnReq.order);
+      if (order) {
+        order.status = "return_shipped";
+        order.statusHistory.push({
+          status: "return_shipped",
+          note: `Return item picked up by delivery partner`,
+          changedBy: req.user._id,
+        });
+        await order.save();
+      }
+    }
+
+    // Notify Customer
+    await Notification.create({
+      recipient: returnReq.customer,
+      type: "return_status",
+      title: "Return Picked Up",
+      message: `Your return item for Return #${returnReq._id.toString().slice(-6)} has been picked up by the delivery partner.`,
+      data: { entityType: "return", entityId: returnReq._id },
+    });
+
+    // Notify Seller
+    const sellerUserId = await getSellerUserId(returnReq.seller);
+    if (sellerUserId) {
+      await Notification.create({
+        recipient: sellerUserId,
+        type: "return_status",
+        title: "Return Item Picked Up from Customer",
+        message: `The delivery partner has picked up the return item for Return #${returnReq._id.toString().slice(-6)} from the customer and is en route to return it to your store.`,
+        data: { entityType: "return", entityId: returnReq._id },
+      });
+    }
+
+    res.json({ success: true, message: "Return package picked up from customer", data: returnReq });
+});
+
+// Mark return package as returned to store / seller
+router.put("/returns/:returnId/return-to-store", async (req, res) => {
+    const returnReq = await ReturnRequest.findById(req.params.returnId);
+    if (!returnReq) return res.status(404).json({ success: false, message: "Return request not found" });
+
+    if (returnReq.deliveryPartner?.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "Not assigned to this return pickup" });
+    }
+    if (returnReq.status !== "picked_up") {
+      return res.status(400).json({ success: false, message: `Cannot mark returned to store from "${returnReq.status}" status. Must be picked up first.` });
+    }
+
+    returnReq.status = "returned_to_store";
+    returnReq.returnedToStoreAt = new Date();
+    returnReq.statusHistory.push({
+      status: "returned_to_store",
+      note: req.body.note || "Product delivered back to store / seller warehouse",
+      changedBy: req.user._id,
+    });
+    await returnReq.save();
+
+    // Notify Seller that item arrived at store
+    const sellerUserId = await getSellerUserId(returnReq.seller);
+    if (sellerUserId) {
+      await Notification.create({
+        recipient: sellerUserId,
+        type: "return_status",
+        title: "Returned Product Arrived at Store",
+        message: `The delivery partner has returned the product for Return #${returnReq._id.toString().slice(-6)} to your store. Please inspect the product and confirm receipt to process the refund.`,
+        data: { entityType: "return", entityId: returnReq._id },
+      });
+    }
+
+    res.json({ success: true, message: "Product returned to store successfully", data: returnReq });
 });
 
 export default router;

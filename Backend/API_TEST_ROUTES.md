@@ -45,7 +45,29 @@ Content-Type: application/json
 > until an admin approves via `PUT /api/admin/sellers/:sellerId/verify` or rejects via
 > `PUT /api/admin/sellers/:sellerId/reject` (reason required). The register response
 > includes `requiresApproval: true` and **no** session/accessToken.
-> Only customers and sellers can self-register; admin/delivery/support are staff roles.
+> Only customers, sellers and delivery agents can self-register; admin/support are staff roles.
+
+### Register (delivery agent — vehicle details + driving license required)
+```http
+POST /api/auth/register
+Content-Type: multipart/form-data
+
+name=Ravi Kumar
+email=ravi@example.com
+password=password123
+role=delivery
+phone=9876543210
+vehicleType=Bike
+vehicleNumber=KA05MJ4831
+licenseNumber=KA0520230001234
+licensePhoto=<image file>
+```
+> The agent starts **pending** — an approval request (with the vehicle details and a
+> link to the uploaded license photo) is sent to all admins, and login is blocked (403)
+> until an admin approves via `PUT /api/admin/delivery/:userId/verify` or rejects via
+> `PUT /api/admin/delivery/:userId/reject` (reason required). The response includes
+> `requiresApproval: true` and **no** session/accessToken. A missing `licensePhoto`
+> returns 400 and leaves no orphaned account.
 
 ### Login
 ```http
@@ -109,6 +131,37 @@ Content-Type: application/json
 GET /api/auth/me
 Authorization: Bearer <token>
 ```
+
+### Request Account Reactivation
+
+For **deactivated** users (admin turned the account off — login returns 403
+"Account deactivated"). Sends a reactivation request to all admins; an admin
+then approves it from Admin → Users → "Approve reactivation". Works for any
+role (customer, seller, …). Repeat requests within 24h don't spam admins again.
+
+```http
+POST /api/auth/request-activation
+Content-Type: application/json
+
+{
+  "email": "deactivated@example.com"
+}
+```
+
+**Response (200) — same generic message whether or not the email exists (no user enumeration):**
+```json
+{
+  "success": true,
+  "message": "Your reactivation request has been sent to our admin team. You'll be notified once it's reviewed."
+}
+```
+
+**Then the admin approves:**
+```http
+PUT /api/admin/users/<userId>/activate
+Authorization: Bearer <adminToken>
+```
+→ The user gets an `account_reactivated` notification and can log in again.
 
 ---
 
@@ -828,6 +881,56 @@ Content-Type: application/json
 > `reason` is required (max 500 chars). Sets `status: "rejected"`, stores the reason, notifies
 > the seller, and keeps login blocked. A rejected seller can be approved later via `/verify`.
 
+### 🛵 Delivery Agents — `/api/admin/delivery`
+> Review self-registered delivery agents: vehicle details + driving-license photo
+> (uploaded at `POST /api/auth/register` with `role: "delivery"`). Approving unlocks
+> login; while on duty the agent is included in the random assignment pool.
+
+#### List Delivery Agents
+```http
+GET /api/admin/delivery?status=pending&page=1&limit=20&search=<name|email|phone|vehicleNumber>
+Authorization: Bearer <admin_token>
+```
+> `status`: `pending` (default filter in the admin UI) | `approved` | `rejected`.
+
+#### Get Delivery Agent Details (documents included)
+```http
+GET /api/admin/delivery/<userId>
+Authorization: Bearer <admin_token>
+```
+> Returns `deliveryPartner` with `vehicleType`, `vehicleNumber`, `licenseNumber`,
+> `licensePhoto.url`, `verificationStatus`, `rejectionReason` and `verifiedAt`.
+
+#### Approve (Verify) a Delivery Agent
+```http
+PUT /api/admin/delivery/<userId>/verify
+Authorization: Bearer <admin_token>
+```
+> Unlocks login + delivery routes and notifies the agent. Audited as
+> `delivery_partner.verified`.
+
+#### Reject a Delivery Agent Application
+```http
+PUT /api/admin/delivery/<userId>/reject
+Authorization: Bearer <admin_token>
+Content-Type: application/json
+
+{
+  "reason": "License photo is unreadable"
+}
+```
+> `reason` is required. Keeps login blocked; the reason is shown when the agent
+> tries to log in. The rejected application can be deleted entirely (removes the
+> license photo from Cloudinary too) via `DELETE /api/admin/delivery/<userId>`.
+
+#### Suspend / Reinstate an Approved Agent
+```http
+PUT /api/admin/delivery/<userId>/deactivate
+PUT /api/admin/delivery/<userId>/activate
+Authorization: Bearer <admin_token>
+```
+> Deactivate revokes the refresh token (logs the agent out) and takes them off duty.
+
 #### Admin Notifications (Seller Approval Requests)
 ```http
 GET /api/admin/notifications?unreadOnly=true&page=1&limit=20
@@ -1103,6 +1206,14 @@ GET /api/delivery/orders/active
 Authorization: Bearer <delivery_token>
 ```
 
+#### Get My Assigned Orders (auto-assigned at ship time)
+```http
+GET /api/delivery/orders/assigned
+Authorization: Bearer <delivery_token>
+```
+> Orders randomly assigned to this partner when a seller shipped them while the partner
+> was on duty. Still in `shipped` status — start the run with the endpoint below.
+
 #### Get Delivery History
 ```http
 GET /api/delivery/orders/history?page=1&limit=20
@@ -1114,6 +1225,14 @@ Authorization: Bearer <delivery_token>
 PUT /api/delivery/orders/<orderId>/accept
 Authorization: Bearer <delivery_token>
 ```
+
+#### Start an Auto-Assigned Delivery
+```http
+PUT /api/delivery/orders/<orderId>/start
+Authorization: Bearer <delivery_token>
+```
+> For orders that were randomly auto-assigned to you when the seller shipped them.
+> Moves the order `shipped → out_for_delivery` (only the assigned partner can call it).
 
 #### Mark Order as Delivered
 ```http
@@ -1260,11 +1379,12 @@ Content-Type: application/json
 | Seller Dashboard | `/api/seller/dashboard` | 3 |
 | Admin Users | `/api/admin/users` | 5 |
 | Admin Sellers | `/api/admin/sellers` | 4 |
+| Admin Delivery Agents | `/api/admin/delivery` | 6 |
 | Admin Products | `/api/admin/products` | 5 |
 | Admin Categories | `/api/admin/categories` | 4 |
 | Admin Coupons | `/api/admin/coupons` | 5 |
 | Admin Orders | `/api/admin/orders` | 3 |
 | Admin Analytics | `/api/admin/analytics` | 4 |
-| Delivery | `/api/delivery` | 7 |
+| Delivery | `/api/delivery` | 9 |
 | Support | `/api/support` | 7 |
-| **Total** | | **109** |
+| **Total** | | **116** |

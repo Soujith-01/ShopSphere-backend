@@ -22,6 +22,7 @@ import supportRoutes from './APIS/support/routes.js'
 import supportNotificationRoutes from './APIS/support/notifications.js'
 import aiRoutes from './APIS/ai/index.js'
 import setupMessageSocket from './sockets/messages.js'
+import setupTicketSocket from './sockets/tickets.js'
 
 const app = express()
 const server = http.createServer(app)
@@ -71,6 +72,9 @@ app.set('connectedUsers', connectedUsers)
 
 // Real-time messaging handlers
 setupMessageSocket(io, connectedUsers)
+
+// Real-time support-ticket chat (customer ↔ support agent)
+setupTicketSocket(io, connectedUsers)
 
 // Global middleware
 app.use(helmet())

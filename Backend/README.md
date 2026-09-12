@@ -73,6 +73,12 @@ router.get('/', async (req, res) => {
 | Forgot password — generates reset token | POST | `/forgot-password` |
 | Reset password using token from email | PUT | `/reset-password/:token` |
 | Get current user's profile | GET | `/me` |
+| Request account reactivation (deactivated users can't log in — this notifies admins, who approve via `PUT /api/admin/users/:id/activate`) | POST | `/request-activation` |
+
+### Account lifecycle
+- **Seller registration** → User + Seller profile created (`status: pending`) → admins notified → **login blocked (403)** until an admin approves via `PUT /api/admin/sellers/:sellerId/verify` → seller notified and can log in.
+- **Rejected sellers** stay locked out with a clear rejection message; admins can still approve them later via the same verify route.
+- **Deactivated accounts** (customer, seller, or any role) → login returns 403 → the user calls `POST /api/auth/request-activation` → admins get a notification and the Users page shows a "📩 Reactivation requested" badge (24h throttle prevents duplicate notifications) → admin approves via `PUT /api/admin/users/:userId/activate` → `activationRequestedAt` cleared, user notified (`account_reactivated`), and login works again.
 
 ### Customer (`/api/customer`) — 43 endpoints
 

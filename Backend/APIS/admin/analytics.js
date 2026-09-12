@@ -40,11 +40,13 @@ router.get("/top-products", async (req, res) => {
 router.get("/", async (req, res) => {
     const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
-    const [totalUsers, newUsersThisMonth, totalSellers, verifiedSellers, pendingSellers, totalProducts, activeProducts, pendingProducts, totalOrders, revenueThisMonth, totalRevenue] = await Promise.all([
+    const [totalUsers, newUsersThisMonth, totalSellers, verifiedSellers, pendingSellers, totalProducts, activeProducts, pendingProducts, totalOrders, pendingDeliveryAgents, totalDeliveryAgents, revenueThisMonth, totalRevenue] = await Promise.all([
       User.countDocuments(), User.countDocuments({ createdAt: { $gte: startOfMonth } }),
       Seller.countDocuments(), Seller.countDocuments({ isVerified: true }), Seller.countDocuments({ status: "pending" }),
       Product.countDocuments(), Product.countDocuments({ status: "active" }), Product.countDocuments({ status: "pending" }),
       Order.countDocuments(),
+      User.countDocuments({ role: "delivery", "deliveryPartner.verificationStatus": "pending" }),
+      User.countDocuments({ role: "delivery" }),
       Order.aggregate([{ $match: { createdAt: { $gte: startOfMonth }, status: { $ne: "cancelled" } } }, { $group: { _id: null, total: { $sum: "$total" } } }]),
       Order.aggregate([{ $match: { status: { $ne: "cancelled" } } }, { $group: { _id: null, total: { $sum: "$total" } } }]),
     ]);
@@ -54,6 +56,7 @@ router.get("/", async (req, res) => {
       sellers: { total: totalSellers, verified: verifiedSellers, pending: pendingSellers },
       products: { total: totalProducts, active: activeProducts, pending: pendingProducts },
       orders: { total: totalOrders },
+      deliveryAgents: { total: totalDeliveryAgents, pending: pendingDeliveryAgents },
       revenue: { thisMonth: revenueThisMonth[0]?.total || 0, allTime: totalRevenue[0]?.total || 0 },
     }});
 });

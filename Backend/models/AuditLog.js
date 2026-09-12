@@ -19,6 +19,7 @@ const auditLogSchema = new mongoose.Schema(
       enum: [
         "user",
         "seller",
+      "delivery_partner",
         "store",
         "product",
         "category",

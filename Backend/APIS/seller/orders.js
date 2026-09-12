@@ -2,6 +2,7 @@ import { Router } from "express";
 import Order from "../../models/Order.js";
 import Variant from "../../models/Variant.js";
 import Notification from "../../models/Notification.js";
+import { assignRandomDeliveryAgent } from "../../services/deliveryAssignment.js";
 
 const router = Router();
 
@@ -39,7 +40,11 @@ router.put("/:orderId/cancel", async (req, res) => {
     await order.save();
 
     for (const item of order.items) {
-      if (item.variant) await Variant.findByIdAndUpdate(item.variant, { $inc: { stock: item.quantity } });
+      if (item.variant) {
+        await Variant.findByIdAndUpdate(item.variant, { $inc: { stock: item.quantity } });
+      } else if (item.product) {
+        await Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity, "stats.totalSold": -item.quantity } });
+      }
     }
 
     await Notification.create({ recipient: order.customer, type: "order_cancelled", title: "Order Cancelled", message: `Order ${order.orderNumber} cancelled by seller. ${reason}`, data: { entityType: "order", entityId: order._id } });
@@ -89,7 +94,20 @@ router.put("/:orderId/status", async (req, res) => {
       await Notification.create({ recipient: order.customer, type: notifMap[status], title: `Order ${status.replace(/_/g, " ")}`, message: `Your order ${order.orderNumber} has been ${status.replace(/_/g, " ")}`, data: { entityType: "order", entityId: order._id } });
     }
 
-    res.json({ success: true, message: `Order status updated to "${status}"`, data: order });
+    // When the order ships, hand it to a random on-duty, admin-verified
+    // delivery agent. If nobody qualifies the order stays unassigned and every
+    // partner can still grab it from the "Available" list manually.
+    let assignedAgent = null;
+    if (status === "shipped") {
+      await assignRandomDeliveryAgent(order);
+      if (order.deliveryPartner) assignedAgent = order.deliveryPartner;
+    }
+
+    res.json({
+      success: true,
+      message: `Order status updated to "${status}"${assignedAgent ? " and assigned to a delivery agent" : ""}`,
+      data: order,
+    });
 });
 
 export default router;

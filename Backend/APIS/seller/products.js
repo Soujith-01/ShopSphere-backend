@@ -29,8 +29,16 @@ router.get("/", async (req, res) => {
 
 // Create a new product — published immediately so customers can see it right away
 router.post("/", async (req, res) => {
-    const { name, description, price, category, subCategory, tags, attributes, images, shipping, hasVariants, variantOptions, discount, store } = req.body;
-    if (!name || !price || !category) return res.status(400).json({ success: false, message: "name, price, and category are required" });
+    const { name, description, price, stock, category, subCategory, tags, attributes, images, shipping, hasVariants, variantOptions, discount, store } = req.body;
+    if (!name || price === undefined || price === null || price === "" || !category) {
+      return res.status(400).json({ success: false, message: "name, price, and category are required" });
+    }
+
+    // Validate stock quantity
+    const stockNum = Number(stock);
+    if (stock === undefined || stock === null || stock === "" || isNaN(stockNum) || stockNum < 0 || !Number.isInteger(stockNum)) {
+      return res.status(400).json({ success: false, message: "Stock quantity must be a non-negative whole number" });
+    }
 
     // Products live under a store — accept it from the body, the seller's linked
     // store, or fall back to looking it up. Without one we can't publish.
@@ -43,7 +51,7 @@ router.post("/", async (req, res) => {
 
     const product = await Product.create({
       seller: req.seller._id, store: storeId, name, slug,
-      description: description || "", price: Number(price), category, subCategory: subCategory || null,
+      description: description || "", price: Number(price), stock: stockNum, category, subCategory: subCategory || null,
       tags: tags || [], attributes: attributes || [], images: images || [], shipping: shipping || {},
       hasVariants: hasVariants || false, variantOptions: variantOptions || [], discount: discount || {},
       status: "active", publishedAt: new Date(),
@@ -110,6 +118,14 @@ router.put("/:id", async (req, res) => {
       updates.slug = slug;
     }
 
+    if (updates.stock !== undefined) {
+      const stockNum = Number(updates.stock);
+      if (isNaN(stockNum) || stockNum < 0 || !Number.isInteger(stockNum)) {
+        return res.status(400).json({ success: false, message: "Stock quantity must be a non-negative whole number" });
+      }
+      updates.stock = stockNum;
+    }
+
     const updated = await Product.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
 
     // Only regenerate the embedding when searchable fields actually changed
@@ -118,6 +134,23 @@ router.put("/:id", async (req, res) => {
     }
 
     res.json({ success: true, message: "Product updated", data: updated });
+});
+
+// Quick restock / update product stock directly
+router.put("/:id/stock", async (req, res) => {
+    const product = await Product.findOne({ _id: req.params.id, seller: req.seller._id });
+    if (!product) return res.status(404).json({ success: false, message: "Product not found" });
+
+    const { stock } = req.body;
+    const stockNum = Number(stock);
+    if (stock === undefined || stock === null || isNaN(stockNum) || stockNum < 0 || !Number.isInteger(stockNum)) {
+      return res.status(400).json({ success: false, message: "Stock quantity must be a non-negative whole number" });
+    }
+
+    product.stock = stockNum;
+    await product.save({ validateModifiedOnly: true });
+
+    res.json({ success: true, message: "Stock updated successfully", data: product });
 });
 
 // Delete a product (hard delete if draft, soft delete otherwise)

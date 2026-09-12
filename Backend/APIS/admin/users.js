@@ -15,10 +15,15 @@ router.get("/stats", async (req, res) => {
 
 // List all users with filters (role, status, search by name/email/phone)
 router.get("/", async (req, res) => {
-    const { page = 1, limit = 20, role, search, isActive } = req.query;
+    const { page = 1, limit = 20, role, search, isActive, activationRequested } = req.query;
     const filter = {};
     if (role) filter.role = role;
     if (isActive !== undefined) filter.isActive = isActive === "true";
+    if (activationRequested === "true") {
+      // Users who asked for reactivation and are still deactivated
+      filter.isActive = false;
+      filter.activationRequestedAt = { $ne: null };
+    }
     if (search) filter.$or = [{ name: { $regex: search, $options: "i" } }, { email: { $regex: search, $options: "i" } }, { phone: { $regex: search, $options: "i" } }];
 
     const pageNum = Math.max(1, Number(page));
@@ -74,9 +79,19 @@ router.put("/:userId/activate", async (req, res) => {
     if (!user) return res.status(404).json({ success: false, message: "User not found" });
 
     user.isActive = true;
+    user.activationRequestedAt = null;
     await user.save({ validateModifiedOnly: true });
 
     await AuditLog.create({ actor: req.user._id, actorRole: "admin", action: "user.activated", entityType: "user", entityId: user._id, description: `Admin reactivated user ${user.email}` });
+
+    // Let the user know they can log in again
+    await Notification.create({
+      recipient: user._id,
+      type: "account_reactivated",
+      title: "Account Reactivated",
+      message: "Your account has been reactivated by an admin. You can now log in again.",
+      data: { entityType: "user", entityId: user._id },
+    });
 
     res.json({ success: true, message: "User reactivated", data: { ...user.toJSON() } });
 });

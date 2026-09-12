@@ -2,6 +2,7 @@ import { Router } from "express";
 import SupportTicket from "../../models/SupportTicket.js";
 import Notification from "../../models/Notification.js";
 import { protect, authorize } from "../../middlewares/authMiddleware.js";
+import { postTicketMessage, announceTicketChange } from "../../services/ticketChat.js";
 
 const router = Router();
 router.use(protect, authorize("support", "admin"));
@@ -95,7 +96,7 @@ router.put("/tickets/:ticketId/assign", async (req, res) => {
   res.json({ success: true, message: "Ticket assigned", data: ticket });
 });
 
-// Reply to a ticket (support agent)
+// Reply to a ticket (support agent) — persists + real-time push to the customer
 router.post("/tickets/:ticketId/messages", async (req, res) => {
   const { message } = req.body;
   if (!message) return res.status(400).json({ success: false, message: "Message is required" });
@@ -105,6 +106,14 @@ router.post("/tickets/:ticketId/messages", async (req, res) => {
   if (["resolved", "closed"].includes(ticket.status)) return res.status(400).json({ success: false, message: `Cannot add messages to a ${ticket.status} ticket` });
 
   const attachments = (req.body.attachments || []).map((a) => ({ url: a.url, publicId: a.publicId }));
+  const io = req.app.get("io");
+  const connectedUsers = req.app.get("connectedUsers");
+  if (io && connectedUsers) {
+    await postTicketMessage({ io, connectedUsers, ticket, senderId: req.user._id, senderRole: req.user.role || "support", text: message, attachments });
+    return res.status(201).json({ success: true, data: ticket });
+  }
+
+  // Fallback without a socket context (scripted tests):
   ticket.messages.push({ sender: req.user._id, senderRole: req.user.role || "support", message, attachments });
   if (ticket.status === "waiting_customer") ticket.status = "in_progress";
   await ticket.save();
@@ -127,6 +136,15 @@ router.put("/tickets/:ticketId/status", async (req, res) => {
   if (status === "resolved") { ticket.resolvedAt = new Date(); ticket.resolution = resolution || note; }
   ticket.statusHistory.push({ status, note, changedBy: req.user._id });
   await ticket.save();
+
+  // Real-time: let watchers refresh their ticket lists.
+  try {
+    const io = req.app.get("io");
+    const connectedUsers = req.app.get("connectedUsers");
+    if (io && connectedUsers) await announceTicketChange({ io, connectedUsers, ticket });
+  } catch (err) {
+    console.error(`[Support] status broadcast failed: ${err.message}`);
+  }
 
   await Notification.create({ recipient: ticket.customer, type: "support_reply", title: `Ticket ${status.replace(/_/g, " ")}`, message: `Your ticket ${ticket.ticketNumber} is now ${status.replace(/_/g, " ")}`, data: { entityType: "ticket", entityId: ticket._id } });
   res.json({ success: true, data: ticket });

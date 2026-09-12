@@ -55,7 +55,6 @@ router.post("/checkout", async (req, res) => {
 
     // Validate stock, snapshot prices, and group items by seller
     const sellerGroups = new Map();
-    const stockDeductions = [];
     let cartSubtotal = 0;
 
     for (const item of cart.items) {
@@ -65,15 +64,24 @@ router.post("/checkout", async (req, res) => {
       }
 
       let variantDoc = null;
+      let availableStock = product.stock ?? 0;
       if (item.variant) {
         variantDoc = await Variant.findById(item.variant);
         if (!variantDoc || !variantDoc.isActive) {
           return res.status(400).json({ success: false, message: `Variant unavailable for ${product.name}` });
         }
-        if (item.quantity > variantDoc.availableStock) {
-          return res.status(400).json({ success: false, message: `Insufficient stock for "${product.name}"` });
-        }
-        stockDeductions.push({ variant: variantDoc, quantity: item.quantity });
+        availableStock = variantDoc.availableStock;
+      }
+
+      if (availableStock <= 0) {
+        return res.status(400).json({ success: false, message: `"${product.name}" is currently out of stock` });
+      }
+
+      if (item.quantity > availableStock) {
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient stock for "${product.name}". Only ${availableStock} item${availableStock === 1 ? "" : "s"} currently available.`,
+        });
       }
 
       const effectivePrice = variantDoc ? variantDoc.price : product.price;
@@ -111,6 +119,54 @@ router.post("/checkout", async (req, res) => {
 
     const finalTotal = cartSubtotal - discount;
 
+    // Perform atomic stock deductions (concurrency safe)
+    const appliedDeductions = [];
+    for (const item of cart.items) {
+      if (item.variant) {
+        const updatedVariant = await Variant.findOneAndUpdate(
+          { _id: item.variant, stock: { $gte: item.quantity }, isActive: true },
+          { $inc: { stock: -item.quantity } },
+          { new: true }
+        );
+        if (!updatedVariant) {
+          const currentVariant = await Variant.findById(item.variant);
+          const avail = currentVariant?.stock || 0;
+          for (const d of appliedDeductions) {
+            if (d.type === "variant") await Variant.findByIdAndUpdate(d.id, { $inc: { stock: d.quantity } });
+            else await Product.findByIdAndUpdate(d.id, { $inc: { stock: d.quantity, "stats.totalSold": -d.quantity } });
+          }
+          return res.status(400).json({
+            success: false,
+            message: avail > 0
+              ? `Only ${avail} item${avail === 1 ? "" : "s"} currently available for "${item.productName}".`
+              : `"${item.productName}" is now out of stock.`,
+          });
+        }
+        appliedDeductions.push({ type: "variant", id: item.variant, quantity: item.quantity });
+      } else {
+        const updatedProduct = await Product.findOneAndUpdate(
+          { _id: item.product, stock: { $gte: item.quantity }, status: "active" },
+          { $inc: { stock: -item.quantity, "stats.totalSold": item.quantity } },
+          { new: true }
+        );
+        if (!updatedProduct) {
+          const currentProd = await Product.findById(item.product);
+          const avail = currentProd?.stock || 0;
+          for (const d of appliedDeductions) {
+            if (d.type === "variant") await Variant.findByIdAndUpdate(d.id, { $inc: { stock: d.quantity } });
+            else await Product.findByIdAndUpdate(d.id, { $inc: { stock: d.quantity, "stats.totalSold": -d.quantity } });
+          }
+          return res.status(400).json({
+            success: false,
+            message: avail > 0
+              ? `Only ${avail} item${avail === 1 ? "" : "s"} currently available for "${item.productName}".`
+              : `"${item.productName}" is now out of stock.`,
+          });
+        }
+        appliedDeductions.push({ type: "product", id: item.product, quantity: item.quantity });
+      }
+    }
+
     // Create parent order
     const parentOrder = new ParentOrder({
       customer: req.user._id, total: finalTotal, totalItems: cart.items.reduce((s, i) => s + i.quantity, 0),
@@ -142,17 +198,9 @@ router.post("/checkout", async (req, res) => {
     }
 
     parentOrder.subOrders = subOrders.map((o) => o._id);
-    // Keep the parent payment pending for ALL methods — only payments/verify (online)
-    // or delivery (COD) may mark it paid. This guarantees seller wallets are never
-    // bypassed by checkout-level "completed" states.
     parentOrder.payment.status = "pending";
     await parentOrder.save();
 
-    // Deduct stock, bump coupon usage, clear cart
-    for (const d of stockDeductions) {
-      d.variant.stock -= d.quantity;
-      await d.variant.save();
-    }
     if (couponDoc) { couponDoc.usedCount += 1; await couponDoc.save(); }
 
     await Cart.findByIdAndUpdate(cart._id, { items: [], subtotal: 0, totalItems: 0, coupon: null, couponCode: "", discountAmount: 0 });
@@ -219,7 +267,11 @@ router.put("/:orderId/cancel", async (req, res) => {
   await order.save();
 
   for (const item of order.items) {
-    if (item.variant) await Variant.findByIdAndUpdate(item.variant, { $inc: { stock: item.quantity } });
+    if (item.variant) {
+      await Variant.findByIdAndUpdate(item.variant, { $inc: { stock: item.quantity } });
+    } else if (item.product) {
+      await Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity, "stats.totalSold": -item.quantity } });
+    }
   }
 
   await Notification.create({ recipient: order.seller, type: "order_cancelled", title: "Order Cancelled", message: `Order ${order.orderNumber} has been cancelled`, data: { entityType: "order", entityId: order._id } });

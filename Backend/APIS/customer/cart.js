@@ -10,15 +10,14 @@ router.use(protect);
 // Get user's cart with populated items
 router.get("/", async (req, res) => {
   let cart = await Cart.findOne({ user: req.user._id })
-    .populate("items.product", "name slug price images status")
+    .populate("items.product", "name slug price images status stock")
     .populate("items.variant", "label price stock images");
 
   if (!cart) cart = await Cart.create({ user: req.user._id, items: [] });
 
-  // Filter out unavailable products
+  // Filter out unavailable/deleted products
   cart.items = cart.items.filter((item) => {
     if (!item.product || item.product.status !== "active") return false;
-    if (item.variant && item.variant.stock <= 0) return false;
     return true;
   });
 
@@ -37,7 +36,7 @@ router.post("/", async (req, res) => {
   if (!product) return res.status(404).json({ success: false, message: "Product not found" });
 
   let price = product.price;
-  let stock = Infinity;
+  let stock = product.stock ?? 0;
   let variantDoc = null;
   let productImage = product.images?.[0]?.url || "";
 
@@ -51,8 +50,15 @@ router.post("/", async (req, res) => {
     return res.status(400).json({ success: false, message: "This product has variants. Please select a variant." });
   }
 
-  if (quantity > stock && stock !== Infinity) {
-    return res.status(400).json({ success: false, message: "Insufficient stock" });
+  if (stock <= 0) {
+    return res.status(400).json({ success: false, message: "This product is currently out of stock" });
+  }
+
+  if (quantity > stock) {
+    return res.status(400).json({
+      success: false,
+      message: `Only ${stock} item${stock === 1 ? "" : "s"} currently available.`,
+    });
   }
 
   let cart = await Cart.findOne({ user: req.user._id });
@@ -65,8 +71,14 @@ router.post("/", async (req, res) => {
 
   if (existingIndex > -1) {
     const newQty = cart.items[existingIndex].quantity + quantity;
-    if (newQty > stock && stock !== Infinity) {
-      return res.status(400).json({ success: false, message: "Insufficient stock" });
+    if (newQty > stock) {
+      const remaining = Math.max(0, stock - cart.items[existingIndex].quantity);
+      return res.status(400).json({
+        success: false,
+        message: remaining > 0
+          ? `You already have ${cart.items[existingIndex].quantity} in your cart. Only ${remaining} more can be added.`
+          : `You already have all ${stock} available items in your cart.`,
+      });
     }
     cart.items[existingIndex].quantity = newQty;
   } else {
@@ -81,7 +93,7 @@ router.post("/", async (req, res) => {
   await cart.save();
 
   cart = await Cart.findOne({ user: req.user._id })
-    .populate("items.product", "name slug price images status")
+    .populate("items.product", "name slug price images status stock")
     .populate("items.variant", "label price stock images");
 
   res.json({ success: true, message: "Item added to cart", data: cart });
@@ -99,11 +111,22 @@ router.put("/:itemId", async (req, res) => {
   if (quantity <= 0) {
     item.deleteOne();
   } else {
+    let availableStock = Infinity;
     if (item.variant) {
       const variant = await Variant.findById(item.variant);
-      if (variant && quantity > variant.availableStock) {
-        return res.status(400).json({ success: false, message: "Insufficient stock" });
-      }
+      if (variant) availableStock = variant.availableStock;
+    } else {
+      const product = await Product.findById(item.product);
+      if (product) availableStock = product.stock ?? 0;
+    }
+
+    if (quantity > availableStock) {
+      return res.status(400).json({
+        success: false,
+        message: availableStock > 0
+          ? `Only ${availableStock} item${availableStock === 1 ? "" : "s"} currently available.`
+          : "This product is now out of stock.",
+      });
     }
     item.quantity = quantity;
   }
@@ -113,7 +136,7 @@ router.put("/:itemId", async (req, res) => {
   await cart.save();
 
   const updatedCart = await Cart.findOne({ user: req.user._id })
-    .populate("items.product", "name slug price images status")
+    .populate("items.product", "name slug price images status stock")
     .populate("items.variant", "label price stock images");
 
   res.json({ success: true, data: updatedCart });
@@ -133,7 +156,7 @@ router.delete("/:itemId", async (req, res) => {
   await cart.save();
 
   const updatedCart = await Cart.findOne({ user: req.user._id })
-    .populate("items.product", "name slug price images status")
+    .populate("items.product", "name slug price images status stock")
     .populate("items.variant", "label price stock images");
 
   res.json({ success: true, data: updatedCart });

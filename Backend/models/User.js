@@ -60,7 +60,13 @@ const userSchema = new mongoose.Schema(
     // Account status
     isActive: { type: Boolean, default: true },
 
-    // Delivery partner specific
+    // Set when a deactivated user asks to be reactivated (POST /auth/request-activation).
+    // Admins see it as a "Reactivation requested" badge/filter; cleared on reactivation.
+    activationRequestedAt: { type: Date, default: null },
+
+    // Delivery partner specific. Public registration creates the account with
+    // verificationStatus "pending" — an admin must approve it (and can see the
+    // vehicle details + driving license photo) before the agent can log in.
     deliveryPartner: {
       isAvailable: { type: Boolean, default: false },
       currentLocation: {
@@ -68,6 +74,20 @@ const userSchema = new mongoose.Schema(
         coordinates: { type: [Number], default: [0, 0] },
       },
       vehicleType: { type: String, default: "" },
+      vehicleNumber: { type: String, default: "", trim: true, uppercase: true, maxlength: 20 },
+      licenseNumber: { type: String, default: "", trim: true, uppercase: true, maxlength: 30 },
+      licensePhoto: {
+        url: { type: String, default: "" },
+        publicId: { type: String, default: "" },
+      },
+      // pending → awaiting admin review | approved → can log in & deliver | rejected
+      verificationStatus: {
+        type: String,
+        enum: ["pending", "approved", "rejected"],
+        default: "pending",
+      },
+      rejectionReason: { type: String, default: "", maxlength: 500 },
+      verifiedAt: { type: Date, default: null },
     },
   },
   { timestamps: true }

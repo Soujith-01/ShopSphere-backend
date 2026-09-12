@@ -57,14 +57,25 @@ const returnRequestSchema = new mongoose.Schema(
       },
     ],
 
+    deliveryPartner: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    pickedUpAt: { type: Date, default: null },
+    returnedToStoreAt: { type: Date, default: null },
+
     status: {
       type: String,
       enum: [
         "pending",
         "approved",
         "rejected",
+        "picked_up",
         "return_shipped",
+        "returned_to_store",
         "return_received",
+        "received",
         "refunded",
       ],
       default: "pending",

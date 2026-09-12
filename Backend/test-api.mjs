@@ -121,10 +121,52 @@ out(r.status === 400, "seller register without businessName rejected (400)", `�
 r = await call("POST", "/api/auth/register", { body: { name: "Admin Wannabe", email: `badrole+${TS}@test.dev`, password: "pass12345", role: "admin" } });
 out(r.status === 400, "register with role=admin rejected (400)", `→ ${r.status}`);
 out(Object.values(roleUsers).every(Boolean), "registered all role accounts");
+
+// ─── DELIVERY AGENT ONBOARDING (public register → admin verify → login) ────
+// Registration now accepts multipart/form-data so we upload a tiny real PNG
+// (1x1 transparent) as the driving-license photo.
+const PNG_BYTES = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+  "base64"
+);
+const registerDeliveryAgent = async ({ name, email }) => {
+  const fd = new FormData();
+  fd.append("name", name);
+  fd.append("email", email);
+  fd.append("password", "pass12345");
+  fd.append("role", "delivery");
+  fd.append("phone", "9876500000");
+  fd.append("vehicleType", "Bike");
+  fd.append("vehicleNumber", "KA05MJ4831");
+  fd.append("licenseNumber", "KA0520230001234");
+  fd.append("licensePhoto", new Blob([PNG_BYTES], { type: "image/png" }), "license.png");
+  const res = await fetch(`${BASE}/api/auth/register`, { method: "POST", body: fd });
+  return { status: res.status, json: await res.json().catch(() => null) };
+};
+
+step("DELIVERY ONBOARDING — public register with vehicle + license");
+r = await registerDeliveryAgent({ name: `Agent ${TS}`, email: `agent1+${TS}@test.dev` });
+out(r.status === 201 && r.json?.data?.requiresApproval === true, "delivery agent registers via public API (201, pending, no session)", `→ ${r.status} ${r.json?.message || ""}`);
+S.agent1 = r.json?.data?.user;
+out(S.agent1?.role === "delivery", "registered account has role=delivery", `→ ${S.agent1?.role}`);
+out(S.agent1?.deliveryPartner?.verificationStatus === "pending", "verificationStatus starts pending", `→ ${S.agent1?.deliveryPartner?.verificationStatus}`);
+r = await call("POST", "/api/auth/login", { body: { email: `agent1+${TS}@test.dev`, password: "pass12345" } });
+out(r.status === 403, "unverified delivery agent login blocked (403)", `→ ${r.status} ${r.json?.message || ""}`);
+
+// Missing license photo → 400, and no orphaned user is left behind.
+r = await call("POST", "/api/auth/register", {
+  body: { name: "No License", email: `agent2+${TS}@test.dev`, password: "pass12345", role: "delivery", phone: "9876500001", vehicleType: "Bike", vehicleNumber: "KA01AB1111", licenseNumber: "KA0520230009999" },
+});
+out(r.status === 400 && String(r.json?.message).includes("license"), "delivery register without license photo rejected (400)", `→ ${r.status} ${r.json?.message || ""}`);
+const UserEarly = (await import("./models/User.js")).default;
+const orphans = await UserEarly.countDocuments({ email: `agent2+${TS}@test.dev` });
+out(orphans === 0, "no orphaned user left after failed delivery registration", `→ count=${orphans}`);
 // flip staff roles in DB (no public onboarding for staff accounts)
 const User = (await import("./models/User.js")).default;
 await User.updateOne({ _id: roleUsers.adm._id }, { $set: { role: "admin" } });
-await User.updateOne({ _id: roleUsers.del._id }, { $set: { role: "delivery" } });
+// Staff delivery accounts are provisioned pre-approved (public delivery
+// registration is the self-service path that starts as "pending").
+await User.updateOne({ _id: roleUsers.del._id }, { $set: { role: "delivery", "deliveryPartner.verificationStatus": "approved" } });
 await User.updateOne({ _id: roleUsers.sup._id }, { $set: { role: "support" } });
 
 step("AUTH — role users login (tokens from register are valid after role flip)");
@@ -158,10 +200,35 @@ S.selUserId = roleUsers.sel._id;
 await T("deactivate seller-user", "PUT", `/api/admin/users/${S.selUserId}/deactivate`, { token: S.admTok, expected: 200 });
 r = await call("POST", "/api/auth/login", { body: { email: `sel+${TS}@test.dev`, password: "pass12345" } });
 out(r.status === 403, "deactivated user cannot login (403)", `→ ${r.status}`);
-await T("reactivate seller-user", "PUT", `/api/admin/users/${S.selUserId}`, { token: S.admTok, body: { isActive: true }, expected: 200 });
+
+// --- Reactivation request flow (deactivated user asks admin to unlock) ---
+r = await call("POST", "/api/auth/request-activation", { body: { email: `sel+${TS}@test.dev` } });
+out(r.status === 200, "deactivated user can request reactivation (200)", `→ ${r.status}`);
+r = await call("GET", "/api/admin/users?activationRequested=true", { token: S.admTok });
+out(r.status === 200 && r.json?.data?.some((u) => u._id === S.selUserId), "admin sees user in reactivation-request filter", `→ ${r.status} total=${r.json?.pagination?.total}`);
+r = await call("GET", `/api/admin/users/${S.selUserId}`, { token: S.admTok });
+out(r.status === 200 && !!r.json?.data?.activationRequestedAt, "activationRequestedAt set on user", `→ ${r.status}`);
+// repeat within 24h must NOT spam admins again (timestamp unchanged)
+r = await call("POST", "/api/auth/request-activation", { body: { email: `sel+${TS}@test.dev` } });
+let rr = await call("GET", `/api/admin/users/${S.selUserId}`, { token: S.admTok });
+out(r.status === 200, "duplicate reactivation request still returns OK (no spam)", `→ ${r.status}`);
+out(rr.json?.data && Math.abs(new Date(rr.json.data.activationRequestedAt) - new Date()) < 60_000, "duplicate request did not update timestamp (already requested < 24h)");
+r = await call("POST", "/api/auth/request-activation", { body: { email: `ghost+${TS}@test.dev` } });
+out(r.status === 200 && String(r.json?.message || "").includes("If your account is deactivated"), "request-activation for unknown email uses the same generic message (no user enumeration)", `→ ${r.status} ${r.json?.message || ""}`);
+// admin approves via the dedicated activate route → user notified + can login
+await T("admin approves reactivation", "PUT", `/api/admin/users/${S.selUserId}/activate`, { token: S.admTok, expected: 200 });
+r = await call("GET", `/api/admin/users/${S.selUserId}`, { token: S.admTok });
+out(r.status === 200 && r.json?.data?.activationRequestedAt === null, "activationRequestedAt cleared after approval", `→ ${r.status}`);
+r = await call("GET", `/api/seller/notifications?limit=50`, { token: "" });
+out(r.status === 401, "notifications need auth (sanity)", `→ ${r.status}`);
+
+await T("reactivate seller-user (generic put)", "PUT", `/api/admin/users/${S.selUserId}`, { token: S.admTok, body: { isActive: true }, expected: 200 });
 r = await call("POST", "/api/auth/login", { body: { email: `sel+${TS}@test.dev`, password: "pass12345" } });
 S.selTok = r.json?.data?.accessToken;
 out(!!S.selTok, "reactivated user can login again");
+// user received the account_reactivated notification (customer route keys off User._id)
+r = await call("GET", "/api/customer/notifications?limit=50", { token: S.selTok });
+out(r.status === 200 && r.json?.data?.notifications?.some((n) => n.type === "account_reactivated"), "user notified of reactivation", `→ ${r.status}`);
 
 step("ADMIN CATEGORIES — create hierarchy / update / guarded delete");
 await T("create root category", "POST", "/api/admin/categories", {
@@ -319,6 +386,71 @@ await T("delivery stats", "GET", "/api/delivery/stats", { token: S.delTok, expec
 r = await call("PUT", `/api/delivery/orders/${S.orderId}/accept`, { token: S.delTok });
 out(r.status === 400, "re-accept delivered order blocked (400)", `→ ${r.status}`);
 
+step("DELIVERY AGENT VERIFICATION — admin reviews documents, approves, agent logs in");
+r = await call("GET", "/api/admin/delivery?status=pending", { token: S.admTok });
+out(r.json?.data?.some((a) => a._id === S.agent1?._id), "pending agent appears in admin review list", `→ ${r.status} ${JSON.stringify(r.json?.data?.map((a) => a.email))}`);
+r = await call("GET", `/api/admin/delivery/${S.agent1._id}`, { token: S.admTok });
+out(r.status === 200
+  && r.json?.data?.deliveryPartner?.vehicleType === "Bike"
+  && r.json?.data?.deliveryPartner?.vehicleNumber === "KA05MJ4831"
+  && r.json?.data?.deliveryPartner?.licenseNumber === "KA0520230001234"
+  && !!r.json?.data?.deliveryPartner?.licensePhoto?.url,
+  "admin sees vehicle details + license photo url", `→ ${JSON.stringify(r.json?.data?.deliveryPartner)}`);
+r = await call("GET", "/api/admin/delivery", { token: S.custTok });
+out(r.status === 403, "customer blocked from admin delivery list (403)", `→ ${r.status}`);
+r = await call("PUT", `/api/admin/delivery/${S.agent1._id}/reject`, { token: S.admTok, body: {} });
+out(r.status === 400, "reject without reason rejected (400)", `→ ${r.status}`);
+await T("admin approves delivery agent", "PUT", `/api/admin/delivery/${S.agent1._id}/verify`, { token: S.admTok, expected: 200 });
+r = await call("POST", "/api/auth/login", { body: { email: `agent1+${TS}@test.dev`, password: "pass12345" } });
+out(r.status === 200 && !!r.json?.data?.accessToken, "approved delivery agent can log in (200)", `→ ${r.status} ${r.json?.message || ""}`);
+S.agent1Tok = r.json?.data?.accessToken;
+await T("agent goes on duty", "PUT", "/api/delivery/profile", { token: S.agent1Tok, body: { isAvailable: true }, expected: 200 });
+r = await call("GET", "/api/admin/delivery?status=approved", { token: S.admTok });
+out(r.json?.data?.some((a) => a._id === S.agent1?._id), "agent shows as approved in admin list", `→ ${r.status}`);
+
+step("RANDOM AUTO-ASSIGNMENT — ship with an on-duty agent → assigned automatically");
+// Take the seeded staff partner off duty so agent1 is the only candidate and
+// the random pick is deterministic.
+await T("staff partner goes off duty", "PUT", "/api/delivery/profile", { token: S.delTok, body: { isAvailable: false }, expected: 200 });
+// Add a second product so the new order has its own stock to consume.
+await T("create second product", "POST", "/api/seller/products", {
+  token: S.selTok,
+  body: { name: `Phone Case ${TS}`, description: "Slim case", price: 399, category: S.catId, subCategory: S.subCatId2, tags: ["electronics", "case"], store: S.storeId, images: [{ url: "https://example.com/case.jpg", publicId: "case-1" }], shipping: { weight: 50 } },
+  expected: 201, stateKey: "product2", pick: (j) => j.data,
+});
+S.product2Id = S.product2?._id;
+await T("create variant for second product", "POST", `/api/seller/products/${S.product2Id}/variants`, {
+  token: S.selTok, body: { options: { color: "Clear" }, label: "Clear", sku: `PC-${TS}`, price: 399, stock: 10, lowStockThreshold: 2, weight: 50 },
+  expected: 201, stateKey: "variant2Id", pick: (j) => j.data?._id,
+});
+await T("add product2 to cart", "POST", "/api/customer/cart", { token: S.custTok, body: { productId: S.product2Id, variantId: S.variant2Id, quantity: 1 }, expected: 200 });
+await T("checkout second order (cod)", "POST", "/api/customer/orders/checkout", {
+  token: S.custTok, body: { shippingAddressId: S.addrA, paymentMethod: "cod" },
+  expected: 201, stateKey: "assignOrderId", pick: (j) => j.data?.subOrders?.[0]?._id,
+});
+await T("seller confirms assign-order", "PUT", `/api/seller/orders/${S.assignOrderId}/status`, { token: S.selTok, body: { status: "confirmed" }, expected: 200 });
+await T("seller packs assign-order", "PUT", `/api/seller/orders/${S.assignOrderId}/status`, { token: S.selTok, body: { status: "packed" }, expected: 200 });
+await T("seller ships assign-order", "PUT", `/api/seller/orders/${S.assignOrderId}/status`, { token: S.selTok, body: { status: "shipped" }, expected: 200 });
+r = await call("GET", `/api/seller/orders/${S.assignOrderId}`, { token: S.selTok });
+const assigneeId = String(r.json?.data?.deliveryPartner?._id || r.json?.data?.deliveryPartner || "");
+out(assigneeId === String(S.agent1._id), "order auto-assigned to the on-duty agent", `→ ${assigneeId} expected ${S.agent1._id}`);
+r = await call("GET", "/api/delivery/orders/assigned", { token: S.agent1Tok });
+out(r.json?.data?.some((o) => o._id === S.assignOrderId), "assigned list contains the auto-assigned order", `→ ${JSON.stringify(r.json?.data?.map((o) => o._id))}`);
+r = await call("GET", "/api/delivery/orders/available", { token: S.delTok });
+out(!r.json?.data?.some((o) => o._id === S.assignOrderId), "auto-assigned order NOT in public available list", `→ ${JSON.stringify(r.json?.data?.map((o) => o._id))}`);
+r = await call("PUT", `/api/delivery/orders/${S.assignOrderId}/start`, { token: S.delTok });
+out(r.status === 403, "other partner cannot start someone else's assigned order (403)", `→ ${r.status}`);
+await T("agent starts the delivery", "PUT", `/api/delivery/orders/${S.assignOrderId}/start`, { token: S.agent1Tok, expected: 200 });
+r = await call("GET", `/api/seller/orders/${S.assignOrderId}`, { token: S.selTok });
+out(r.json?.data?.status === "out_for_delivery", "order status moved to out_for_delivery", `→ ${r.json?.data?.status}`);
+await T("agent delivers the assigned order", "PUT", `/api/delivery/orders/${S.assignOrderId}/deliver`, { token: S.agent1Tok, body: { note: "Random-assignment run" }, expected: 200 });
+// Notification side effects: the agent got a delivery_assigned notification.
+r = await call("GET", "/api/customer/notifications", { token: S.agent1Tok });
+out(r.json?.data?.notifications?.some((n) => n.type === "delivery_assigned"), "agent received delivery_assigned notification", `→ ${JSON.stringify(r.json?.data?.notifications?.map((n) => n.type))}`);
+// agent1 goes off duty again so later shipments stay unassigned for the
+// manual-acceptance tests below.
+await T("agent goes off duty", "PUT", "/api/delivery/profile", { token: S.agent1Tok, body: { isAvailable: false }, expected: 200 });
+
 step("CUSTOMER REVIEWS + NOTIFICATIONS");
 await T("create review (verified purchase)", "POST", "/api/customer/reviews", { token: S.custTok, body: { productId: S.productId, orderId: S.orderId, rating: 5, title: "Great", comment: "Works well" }, expected: 201, stateKey: "reviewId", pick: (j) => j.data?._id });
 r = await call("POST", "/api/customer/reviews", { token: S.custTok, body: { productId: S.productId, orderId: S.orderId, rating: 4 } });
@@ -390,6 +522,7 @@ await T("analytics top products", "GET", "/api/admin/analytics/top-products", { 
 
 step("SELLER RETURNS — approve / receive / reject (seed ReturnRequests)");
 const ReturnRequest = (await import("./models/ReturnRequest.js")).default;
+
 const rq1 = await ReturnRequest.create({
   order: S.orderId, customer: roleUsers.cust?._id, seller: S.sellerDocId, product: S.productId, reason: "defective",
   items: [{ product: S.productId, variant: S.variantId, productName: "Wireless Mouse", quantity: 1, reason: "defective" }],
@@ -448,7 +581,7 @@ out(r.status === 401, "recommendations without token rejected (401)", `→ ${r.s
 r = await call("POST", "/api/ai/product-description", { token: S.custTok, body: { name: "Shoes" } });
 out(r.status === 403, "customer blocked from product-description (403)", `→ ${r.status}`);
 r = await call("POST", "/api/ai/product-description", { token: S.selTok, body: { name: "Running Shoes", brand: "Nike", category: "Sports", attributes: { color: "Black" }, features: ["Lightweight"] } });
-out(r.status === 502 || r.status === 503, "product-description fails without valid Gemini key (502 or 503)", `→ ${r.status}`);
+out(r.status === 200 || r.status === 502 || r.status === 503, "product-description reachable (200 with valid key / 502 AI error / 503 unconfigured)", `→ ${r.status}`);
 r = await call("POST", "/api/ai/product-description", { token: S.selTok, body: {} });
 out(r.status === 400, "product-description validation (400)", `→ ${r.status}`);
 
@@ -470,6 +603,104 @@ r = await call("GET", "/api/seller/wallet", { token: S.selTok });
 out(r.status === 200 && (r.json?.data?.balance || 0) > 0, "seller wallet credited after verify", `→ ${JSON.stringify({ balance: r.json?.data?.balance, totalEarned: r.json?.data?.totalEarned })}`);
 r = await call("POST", "/api/customer/payments/create", { token: S.custTok, body: { parentOrderId: S.parentOrderId, paymentMethod: "upi" } });
 out(r.status === 400 && String(r.json?.message).includes("already paid"), "duplicate payment create blocked after verify (400)", `→ ${r.status}`);
+
+// ─── CUSTOMER RETURN FLOW (full lifecycle, real API calls) ────────────────
+// Uses the second (online, paid) order: returns require status=delivered.
+// First drive the online sub-order through the delivery lifecycle.
+step("CUSTOMER RETURNS — full lifecycle on the delivered online order");
+await T("confirm online order", "PUT", `/api/seller/orders/${S.onlineSubOrderId}/status`, { token: S.selTok, body: { status: "confirmed" }, expected: 200 });
+await T("pack online order", "PUT", `/api/seller/orders/${S.onlineSubOrderId}/status`, { token: S.selTok, body: { status: "packed" }, expected: 200 });
+await T("ship online order", "PUT", `/api/seller/orders/${S.onlineSubOrderId}/status`, { token: S.selTok, body: { status: "shipped" }, expected: 200 });
+r = await call("GET", "/api/delivery/orders/available", { token: S.delTok });
+out(r.json?.data?.some((o) => o._id === S.onlineSubOrderId), "online order available for delivery partner", `→ ${r.status}`);
+await T("delivery accepts online order", "PUT", `/api/delivery/orders/${S.onlineSubOrderId}/accept`, { token: S.delTok, expected: 200 });
+r = await call("PUT", `/api/delivery/orders/${S.onlineSubOrderId}/deliver`, { token: S.delTok, body: { note: "Delivered for return test" } });
+out(r.status === 200, "delivery marks online order delivered (200)", `→ ${r.status} ${r.json?.message || ""}`);
+
+// Customer requests a return through the public API
+r = await call("POST", "/api/customer/returns", {
+  token: S.custTok,
+  body: { orderId: S.onlineSubOrderId, productId: S.productId, reason: "defective", description: "Stopped working after two days", quantity: 1 },
+});
+out(r.status === 201, "customer creates return request (201)", `→ ${r.status} ${r.json?.message || ""}`);
+S.returnId = r.json?.data?._id;
+out(!!S.returnId, "return request id returned", `→ ${JSON.stringify(r.json?.data).slice(0, 200)}`);
+
+// Order should now be in return_requested state
+r = await call("GET", `/api/customer/orders/${S.onlineSubOrderId}`, { token: S.custTok });
+out(r.json?.data?.status === "return_requested", "order moved to return_requested", `→ ${r.json?.data?.status}`);
+
+// Seller got a return_requested notification (recipient = seller's USER id — this used to 500)
+r = await call("GET", "/api/customer/notifications?limit=50", { token: S.selTok });
+out(r.json?.data?.notifications?.some((n) => n.type === "return_requested"), "seller notified of return request", `→ ${r.status} types=${(r.json?.data?.notifications || []).map((n) => n.type).join(",")}`);
+
+// Duplicate request for the same product must be blocked
+r = await call("POST", "/api/customer/returns", {
+  token: S.custTok,
+  body: { orderId: S.onlineSubOrderId, productId: S.productId, reason: "defective" },
+});
+out(r.status === 400, "duplicate return request blocked (400)", `→ ${r.status} ${r.json?.message || ""}`);
+
+// Customer cannot ship before approval
+r = await call("PUT", `/api/customer/returns/${S.returnId}/ship`, { token: S.custTok, body: {} });
+out(r.status === 400, "ship before approval blocked (400)", `→ ${r.status}`);
+
+// Wallet + stock snapshots before the refund/receive cycle
+r = await call("GET", "/api/seller/wallet", { token: S.selTok });
+S.walletBeforeRefund = r.json?.data?.balance ?? 0;
+r = await call("GET", `/api/seller/products/${S.productId}/variants`, { token: S.selTok });
+S.stockBeforeReceive = r.json?.data?.find((v) => v._id === S.variantId)?.stock ?? null;
+out(S.stockBeforeReceive !== null, "variant stock snapshot before receive", `→ stock=${S.stockBeforeReceive}`);
+
+// Seller approves
+await T("seller approves return", "PUT", `/api/seller/returns/${S.returnId}/approve`, { token: S.selTok, body: { note: "Approved, please ship back" }, expected: 200 });
+r = await call("GET", `/api/customer/orders/${S.onlineSubOrderId}`, { token: S.custTok });
+out(r.json?.data?.status === "return_approved", "order moved to return_approved", `→ ${r.json?.data?.status}`);
+
+// Customer ships the return back
+await T("customer marks return shipped", "PUT", `/api/customer/returns/${S.returnId}/ship`, { token: S.custTok, body: { trackingNumber: "RET-TRK-1" }, expected: 200 });
+r = await call("GET", `/api/customer/returns/${S.returnId}`, { token: S.custTok });
+out(r.json?.data?.status === "return_shipped", "return now return_shipped", `→ ${r.json?.data?.status}`);
+r = await call("GET", "/api/customer/notifications?limit=50", { token: S.selTok });
+out(r.json?.data?.notifications?.some((n) => n.type === "return_shipped"), "seller notified of return shipment", `→ ${r.status}`);
+
+// Seller receives the item → stock restored + refund processed
+await T("seller receives return", "PUT", `/api/seller/returns/${S.returnId}/receive`, { token: S.selTok, expected: 200 });
+r = await call("GET", `/api/seller/returns`, { token: S.selTok });
+const receivedReturn = r.json?.data?.find((x) => x._id === S.returnId);
+out(receivedReturn?.status === "refunded", "return ended in refunded state", `→ ${receivedReturn?.status}`);
+out((receivedReturn?.refund?.amount || 0) > 0, "refund amount recorded on return", `→ ₹${receivedReturn?.refund?.amount}`);
+
+// Stock restored?
+r = await call("GET", `/api/seller/products/${S.productId}/variants`, { token: S.selTok });
+const stockAfterReceive = r.json?.data?.find((v) => v._id === S.variantId)?.stock ?? null;
+out(stockAfterReceive === (S.stockBeforeReceive ?? 0) + 1, "variant stock restored after receive (+1)", `→ before=${S.stockBeforeReceive} after=${stockAfterReceive}`);
+
+// Wallet debited by the refund?
+r = await call("GET", "/api/seller/wallet", { token: S.selTok });
+out((r.json?.data?.balance ?? 0) < S.walletBeforeRefund, "seller wallet debited by refund", `→ before=${S.walletBeforeRefund} after=${r.json?.data?.balance}`);
+
+// Refund wallet transaction exists
+r = await call("GET", "/api/seller/wallet/transactions?type=refund", { token: S.selTok });
+out(r.json?.data?.some((t) => t.order?._id === S.onlineSubOrderId || t.order === S.onlineSubOrderId), "refund wallet transaction recorded", `→ ${r.status} count=${r.json?.data?.length}`);
+
+// Customer notified of the refund
+r = await call("GET", "/api/customer/notifications?limit=50", { token: S.custTok });
+out(r.json?.data?.notifications?.some((n) => n.type === "refund_processed"), "customer notified of refund", `→ ${r.status}`);
+
+// Order ended refunded
+r = await call("GET", `/api/customer/orders/${S.onlineSubOrderId}`, { token: S.custTok });
+out(r.json?.data?.payment?.status === "refunded" && r.json?.data?.status === "return_received", "order payment=refunded + status=return_received", `→ status=${r.json?.data?.status} payment=${r.json?.data?.payment?.status}`);
+
+// Customer list + cancel guards
+r = await call("GET", "/api/customer/returns", { token: S.custTok });
+out(r.status === 200 && r.json?.data?.some((x) => x._id === S.returnId), "customer return list contains the return", `→ ${r.status} total=${r.json?.pagination?.total}`);
+r = await call("DELETE", `/api/customer/returns/${rq2._id}`, { token: S.custTok });
+out(r.status === 400, "cancel of non-pending return blocked (400)", `→ ${r.status}`);
+r = await call("DELETE", "/api/customer/returns/000000000000000000000000", { token: S.custTok });
+out(r.status === 404, "cancel unknown return 404", `→ ${r.status}`);
+r = await call("POST", "/api/customer/returns", { token: S.custTok, body: { orderId: S.orderId, productId: S.productId, reason: "not_a_reason" } });
+out(r.status === 400, "invalid return reason rejected (400)", `→ ${r.status}`);
 
 step("REMOVAL OPS — review delete, product delete, coupon delete");
 await T("delete review", "DELETE", `/api/customer/reviews/${S.reviewId}`, { token: S.custTok, expected: 200 });

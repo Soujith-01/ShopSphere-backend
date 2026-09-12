@@ -24,8 +24,18 @@ const productSchema = new mongoose.Schema(
     aiSellingPoints: [{ type: String }],
     aiEmbedding: [{ type: Number }], // For semantic search
 
-    // Pricing
+    // Pricing & Inventory
     price: { type: Number, required: true, min: 0 },
+    stock: {
+      type: Number,
+      required: true,
+      min: 0,
+      default: 0,
+      validate: {
+        validator: Number.isInteger,
+        message: "{VALUE} is not an integer value for stock",
+      },
+    },
 
     // Discount
     discount: {

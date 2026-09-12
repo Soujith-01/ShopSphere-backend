@@ -64,6 +64,90 @@ router.get("/:returnId", async (req, res) => {
   res.json({ success: true, data: ret });
 });
 
+// PUT /api/customer/returns/:returnId/ship — customer marks the return as shipped back
+router.put(
+  "/:returnId/ship",
+  [
+    body("trackingNumber").optional().trim().isLength({ max: 100 }).withMessage("Tracking number must be at most 100 characters"),
+  ],
+  validate,
+  async (req, res) => {
+    const { trackingNumber = "" } = req.body;
+    const returnReq = await ReturnRequest.findOne({
+      _id: req.params.returnId,
+      customer: req.user._id,
+    });
+    if (!returnReq) {
+      return res.status(404).json({ success: false, message: "Return request not found" });
+    }
+    if (returnReq.status !== "approved") {
+      return res.status(400).json({
+        success: false,
+        message: `Return can only be shipped after approval (current status: "${returnReq.status}")`,
+      });
+    }
+
+    returnReq.status = "return_shipped";
+    if (trackingNumber) returnReq.sellerNote = `Tracking: ${trackingNumber}`;
+    returnReq.statusHistory.push({ status: "return_shipped", note: trackingNumber ? `Shipped by customer. Tracking: ${trackingNumber}` : "Shipped by customer", changedBy: req.user._id });
+    await returnReq.save();
+
+    // Reflect the shipment on the order so the seller sees the return in transit
+    const shipOrder = await Order.findById(returnReq.order);
+    if (shipOrder) {
+      shipOrder.status = "return_shipped";
+      shipOrder.statusHistory.push({ status: "return_shipped", note: trackingNumber ? `Return shipped by customer. Tracking: ${trackingNumber}` : "Return shipped by customer", changedBy: req.user._id });
+      await shipOrder.save();
+    }
+
+    // Notify the seller (Seller doc -> owning User account for the notification recipient)
+    const sellerDoc = await Seller.findById(returnReq.seller);
+    if (sellerDoc) {
+      await Notification.create({
+        recipient: sellerDoc.user,
+        type: "return_shipped",
+        title: "Return Shipped",
+        message: `The customer has shipped the return item. ${trackingNumber ? `Tracking: ${trackingNumber}` : ""}`.trim(),
+        data: { entityType: "return", entityId: returnReq._id },
+      });
+    }
+
+    res.json({ success: true, message: "Return marked as shipped", data: returnReq });
+  }
+);
+
+// PUT /api/customer/returns/:returnId/cancel — customer withdraws a pending request
+router.delete("/:returnId", async (req, res) => {
+  const returnReq = await ReturnRequest.findOne({
+    _id: req.params.returnId,
+    customer: req.user._id,
+  });
+  if (!returnReq) {
+    return res.status(404).json({ success: false, message: "Return request not found" });
+  }
+  if (returnReq.status !== "pending") {
+    return res.status(400).json({
+      success: false,
+      message: `Only pending return requests can be cancelled (current status: "${returnReq.status}")`,
+    });
+  }
+
+  returnReq.status = "rejected";
+  returnReq.sellerNote = "Cancelled by customer";
+  returnReq.statusHistory.push({ status: "rejected", note: "Cancelled by customer", changedBy: req.user._id });
+  await returnReq.save();
+
+  // Restore the order status now that the return is withdrawn
+  const order = await Order.findById(returnReq.order);
+  if (order && order.status === "return_requested") {
+    order.status = "delivered";
+    order.statusHistory.push({ status: "delivered", note: "Return request cancelled by customer", changedBy: req.user._id });
+    await order.save();
+  }
+
+  res.json({ success: true, message: "Return request cancelled", data: returnReq });
+});
+
 // POST /api/customer/returns — create a return request
 router.post(
   "/",
@@ -151,10 +235,12 @@ router.post(
       orderItem.quantity
     );
 
+    const targetSellerId = order.seller || product.seller;
+
     const returnRequest = await ReturnRequest.create({
       order: orderId,
       customer: req.user._id,
-      seller: product.seller,
+      seller: targetSellerId,
       product: productId,
       items: [
         {
@@ -176,14 +262,25 @@ router.post(
       ],
     });
 
-    // Notify seller
-    await Notification.create({
-      recipient: product.seller,
-      type: "return_requested",
-      title: "Return Requested",
-      message: `A customer requested a return for "${product.name}" (${reason})`,
-      data: { entityType: "return", entityId: returnRequest._id },
-    });
+    // Put the order into return_requested so the seller/delivery flows see it
+    order.status = "return_requested";
+    order.statusHistory.push({ status: "return_requested", note: `Return requested (${reason})`, changedBy: req.user._id });
+    await order.save();
+
+    // Notify the seller. Resolve to owning User id safely.
+    const sellerDoc = await Seller.findById(targetSellerId);
+    const sellerRecipient = sellerDoc?.user || targetSellerId;
+    try {
+      await Notification.create({
+        recipient: sellerRecipient,
+        type: "return_requested",
+        title: "Return Requested",
+        message: `A customer requested a return for "${product.name}" (${reason})`,
+        data: { entityType: "return", entityId: returnRequest._id },
+      });
+    } catch {
+      /* notification is best-effort */
+    }
 
     res.status(201).json({
       success: true,

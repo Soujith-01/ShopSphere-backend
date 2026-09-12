@@ -1,0 +1,1279 @@
+
+> backend@1.0.0 dev
+> nodemon server.js
+
+[33m[nodemon] 3.1.14[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): *.*[39m
+[33m[nodemon] watching extensions: js,mjs,cjs,json[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[0mGET /api/customer/products/iphone-17 [32m200[0m 252.791 ms - 2026[0m
+[0mGET /api/customer/products/iphone-17 [32m200[0m 22.544 ms - 2026[0m
+[0mGET /api/customer/reviews/product/6aa0de28f2ce63b263fa54e2?limit=50 [33m401[0m 6.540 ms - 54[0m
+[0mGET /api/customer/orders?limit=50 [33m401[0m 8.938 ms - 54[0m
+[0mGET /api/customer/reviews/my/6aa0de28f2ce63b263fa54e2 [33m401[0m 10.508 ms - 54[0m
+[0mGET /api/customer/products/iphone-17/qa [32m200[0m 26.772 ms - 26[0m
+[0mPOST /api/auth/login [32m200[0m 804.401 ms - 730[0m
+[0mGET /api/customer/categories [36m304[0m 47.430 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [32m200[0m 53.660 ms - 9811[0m
+[0mGET /api/customer/wishlist [36m304[0m 85.561 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 72.256 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 42.680 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [36m304[0m 40.180 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 32.772 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 38.799 ms - -[0m
+[0mGET /api/customer/products/iphone-17 [32m200[0m 24.297 ms - 2026[0m
+[0mGET /api/customer/products/iphone-17 [32m200[0m 19.501 ms - 2026[0m
+[0mGET /api/customer/reviews/product/6aa0de28f2ce63b263fa54e2?limit=50 [32m200[0m 34.342 ms - 81[0m
+[0mGET /api/customer/reviews/my/6aa0de28f2ce63b263fa54e2 [32m200[0m 35.100 ms - 28[0m
+[0mGET /api/customer/products/iphone-17/qa [36m304[0m 38.126 ms - -[0m
+[0mGET /api/customer/orders?limit=50 [36m304[0m 64.487 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 16.268 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 15.509 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 15.267 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 12.835 ms - -[0m
+[0mGET /api/customer/messages [36m304[0m 25.308 ms - -[0m
+[Socket] Connected: hLGnqpCNebFvgT5oAAAC
+[Socket] User 6a9ad979ca46aceede2cca52 registered → hLGnqpCNebFvgT5oAAAC
+[0mGET /api/customer/messages [36m304[0m 15.038 ms - -[0m
+[Socket] Disconnected: hLGnqpCNebFvgT5oAAAC
+[0mGET /api/customer/orders?limit=50 [36m304[0m 23.008 ms - -[0m
+[0mGET /api/customer/orders?limit=50 [36m304[0m 16.536 ms - -[0m
+[0mGET /api/customer/returns?limit=50 [32m200[0m 70.801 ms - 1217[0m
+[0mGET /api/customer/returns?limit=50 [36m304[0m 16.257 ms - -[0m
+[0mGET /api/customer/orders?limit=50 [36m304[0m 22.410 ms - -[0m
+[0mGET /api/customer/orders?limit=50 [36m304[0m 18.367 ms - -[0m
+[0mGET /api/customer/orders/6a9f9e2a89ca862bd726564d [32m200[0m 65.905 ms - 3254[0m
+[0mGET /api/customer/orders/6a9f9e2a89ca862bd726564d [36m304[0m 25.570 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 19.729 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [32m200[0m 39.698 ms - 9811[0m
+[0mGET /api/customer/wishlist [36m304[0m 51.603 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 28.349 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [36m304[0m 24.093 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 33.840 ms - -[0m
+[0mGET /api/ai/search-suggestions?q=c&limit=6 [32m200[0m 22.758 ms - 53[0m
+[0mGET /api/ai/search-suggestions?q=ca&limit=6 [32m200[0m 630.555 ms - 26[0m
+[0mGET /api/ai/search-suggestions?q=m&limit=6 [32m200[0m 617.748 ms - 26[0m
+[0mGET /api/ai/search-suggestions?q=a&limit=6 [32m200[0m 8.446 ms - 53[0m
+[0mGET /api/ai/search-suggestions?q=c&limit=6 [32m200[0m 5.897 ms - 150[0m
+[0mGET /api/ai/search-suggestions?q=ca&limit=6 [32m200[0m 6.401 ms - 130[0m
+[0mGET /api/ai/search-suggestions?q=c&limit=6 [36m304[0m 6.491 ms - -[0m
+[0mGET /api/ai/search-suggestions?q=ca&limit=6 [36m304[0m 6.142 ms - -[0m
+[0mGET /api/ai/search-suggestions?q=car&limit=6 [32m200[0m 619.075 ms - 26[0m
+[0mGET /api/ai/search-suggestions?q=car&limit=6 [36m304[0m 607.403 ms - -[0m
+[0mGET /api/ai/search-suggestions?q=ca&limit=6 [36m304[0m 10.228 ms - -[0m
+[0mGET /api/ai/search-suggestions?q=c&limit=6 [36m304[0m 7.168 ms - -[0m
+[0mGET /api/ai/search-suggestions?q=car&limit=6 [36m304[0m 620.865 ms - -[0m
+[0mGET /api/ai/search-suggestions?q=c&limit=6 [36m304[0m 5.989 ms - -[0m
+[0mGET /api/ai/search-suggestions?q=co&limit=6 [32m200[0m 6.204 ms - 53[0m
+[0mGET /api/ai/search-suggestions?q=col&limit=6 [32m200[0m 620.670 ms - 26[0m
+[0mGET /api/ai/search-suggestions?q=colo&limit=6 [32m200[0m 618.359 ms - 26[0m
+[0mGET /api/ai/search-suggestions?q=colou&limit=6 [32m200[0m 618.959 ms - 26[0m
+[0mGET /api/ai/search-suggestions?q=colour&limit=6 [32m200[0m 618.676 ms - 26[0m
+[0mGET /api/ai/search-suggestions?q=colour+ep&limit=6 [32m200[0m 607.209 ms - 26[0m
+[0mGET /api/ai/search-suggestions?q=colour+e&limit=6 [32m200[0m 621.281 ms - 26[0m
+[0mGET /api/ai/search-suggestions?q=colour&limit=6 [36m304[0m 621.421 ms - -[0m
+[0mGET /api/ai/search-suggestions?q=colour+pe&limit=6 [32m200[0m 616.583 ms - 26[0m
+[0mGET /api/ai/search-suggestions?q=colour+pen&limit=6 [32m200[0m 617.696 ms - 26[0m
+[0mGET /api/ai/search-suggestions?q=colour+pend&limit=6 [32m200[0m 615.454 ms - 26[0m
+[0mGET /api/ai/search-suggestions?q=colour+penc&limit=6 [32m200[0m 618.468 ms - 26[0m
+[0mGET /api/ai/search-suggestions?q=colour+penci&limit=6 [32m200[0m 608.529 ms - 26[0m
+[0mGET /api/ai/search-suggestions?q=colour+pencil&limit=6 [32m200[0m 610.184 ms - 26[0m
+[0mGET /api/ai/search-suggestions?q=colour+penci&limit=6 [36m304[0m 607.413 ms - -[0m
+[0mGET /api/ai/search-suggestions?q=c&limit=6 [36m304[0m 5.776 ms - -[0m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[0mGET /api/customer/cart [33m401[0m 11.252 ms - 54[0m
+[0mGET /api/customer/cart [33m401[0m 2.350 ms - 54[0m
+[0mPOST /api/auth/login [32m200[0m 306.520 ms - 643[0m
+[0mGET /api/admin/notifications?limit=1 [32m200[0m 61.735 ms - 626[0m
+[0mGET /api/admin/analytics [32m200[0m 76.167 ms - 226[0m
+[0mGET /api/admin/notifications?limit=1 [36m304[0m 17.903 ms - -[0m
+[0mGET /api/admin/analytics [36m304[0m 31.650 ms - -[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 31.112 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 44.388 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [32m200[0m 45.245 ms - 2394[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 29.774 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 34.041 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [36m304[0m 35.285 ms - -[0m
+[0mGET /api/admin/users?page=1&limit=20 [32m200[0m 19.099 ms - 3748[0m
+[0mGET /api/admin/users/stats [32m200[0m 27.313 ms - 209[0m
+[0mGET /api/admin/users?page=1&limit=20 [36m304[0m 18.210 ms - -[0m
+[0mGET /api/admin/users/stats [36m304[0m 27.141 ms - -[0m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[0mGET /api/admin/notifications?limit=1 [33m401[0m 17.737 ms - 54[0m
+[0mGET /api/admin/users/stats [33m401[0m 16.309 ms - 54[0m
+[0mGET /api/admin/analytics [33m401[0m 17.837 ms - 54[0m
+[0mGET /api/admin/users?page=1&limit=20 [33m401[0m 19.056 ms - 54[0m
+[0mGET /api/admin/notifications?limit=1 [33m401[0m 2.621 ms - 54[0m
+[0mGET /api/admin/users/stats [33m401[0m 3.466 ms - 54[0m
+[0mGET /api/admin/analytics [33m401[0m 4.665 ms - 54[0m
+[0mGET /api/admin/users?page=1&limit=20 [33m401[0m 5.987 ms - 54[0m
+[0mGET /api/admin/users/stats [33m401[0m 1.513 ms - 54[0m
+[0mGET /api/admin/users?page=1&limit=20 [33m401[0m 2.280 ms - 54[0m
+[0mGET /api/admin/analytics [33m401[0m 1.605 ms - 54[0m
+[0mGET /api/admin/notifications?limit=1 [33m401[0m 3.483 ms - 54[0m
+[0mGET /api/admin/users/stats [33m401[0m 1.406 ms - 54[0m
+[0mGET /api/admin/users?page=1&limit=20 [33m401[0m 2.028 ms - 54[0m
+[0mGET /api/admin/analytics [33m401[0m 2.321 ms - 54[0m
+[0mGET /api/admin/notifications?limit=1 [33m401[0m 1.021 ms - 54[0m
+[0mPOST /api/auth/login [33m401[0m 1224.424 ms - 49[0m
+[0mPOST /api/auth/login [32m200[0m 734.587 ms - 730[0m
+[0mGET /api/customer/categories [36m304[0m 52.576 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [36m304[0m 51.953 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 71.545 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 78.008 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 30.449 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [36m304[0m 26.690 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 20.420 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 24.919 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 12.311 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 11.336 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 11.008 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 8.397 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 17.048 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [36m304[0m 19.720 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 30.653 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 19.425 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [36m304[0m 17.875 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 20.307 ms - -[0m
+[0mPOST /api/auth/login [32m200[0m 749.285 ms - 702[0m
+[0mGET /api/seller/dashboard/revenue-chart?days=14 [36m304[0m 59.069 ms - -[0m
+[0mGET /api/seller/dashboard/revenue-chart?days=14 [36m304[0m 10.264 ms - -[0m
+[0mGET /api/seller/dashboard/recent-orders [36m304[0m 76.094 ms - -[0m
+[0mGET /api/seller/store [36m304[0m 85.239 ms - -[0m
+[0mGET /api/seller/dashboard [32m200[0m 90.057 ms - 239[0m
+[0mGET /api/seller/dashboard/recent-orders [36m304[0m 10.817 ms - -[0m
+[0mGET /api/seller/store [36m304[0m 19.280 ms - -[0m
+[0mGET /api/seller/dashboard [36m304[0m 27.809 ms - -[0m
+[0mGET /api/seller/products?page=1&limit=12 [32m200[0m 18.167 ms - 6689[0m
+[0mGET /api/seller/products?page=1&limit=12 [36m304[0m 12.580 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 10.673 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 8.451 ms - -[0m
+[0mPOST /api/seller/uploads/multiple [31m500[0m 8279.573 ms - 45[0m
+[0mPOST /api/seller/uploads/multiple [32m201[0m 7949.264 ms - 709[0m
+[0mPOST /api/ai/product-description [32m200[0m 12396.268 ms - 376[0m
+[0mPOST /api/seller/products [32m201[0m 148.080 ms - 2067[0m
+[0mGET /api/seller/products?page=1&limit=12 [32m200[0m 25.603 ms - 8800[0m
+[AI] Embedding refresh failed for product 6aa117d097facecc66781adc: Gemini embedding API error: {"error":{"code":404,"message":"models/text-embedding-004 is not found for API version v1beta, or is not supported for embedContent. Call ModelService.ListModels to see the list of available models and their supported methods.","status":"NOT_FOUND"}}
+[0mGET /api/customer/categories [36m304[0m 25.355 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [32m200[0m 29.570 ms - 12100[0m
+[0mGET /api/customer/cart [36m304[0m 39.978 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 50.528 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 27.124 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [36m304[0m 26.487 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 32.657 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 45.526 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 12.216 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 9.268 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 7.652 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 8.734 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 22.377 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [36m304[0m 27.604 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 36.633 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 18.630 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [36m304[0m 17.216 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 19.912 ms - -[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop [32m200[0m 25.951 ms - 2698[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop [32m200[0m 13.897 ms - 2698[0m
+[0mGET /api/customer/reviews/product/6aa117d097facecc66781adc?limit=50 [32m200[0m 16.483 ms - 81[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop/qa [32m200[0m 16.735 ms - 26[0m
+[0mGET /api/customer/reviews/my/6aa117d097facecc66781adc [32m200[0m 21.138 ms - 28[0m
+[0mGET /api/customer/orders?limit=50 [36m304[0m 28.107 ms - -[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop [32m200[0m 28.144 ms - 2698[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop [32m200[0m 21.195 ms - 2698[0m
+[0mGET /api/customer/reviews/product/6aa117d097facecc66781adc?limit=50 [36m304[0m 26.236 ms - -[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop/qa [36m304[0m 33.498 ms - -[0m
+[0mGET /api/customer/reviews/my/6aa117d097facecc66781adc [36m304[0m 30.615 ms - -[0m
+[0mGET /api/customer/orders?limit=50 [36m304[0m 40.197 ms - -[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop [32m200[0m 31.011 ms - 2698[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop [32m200[0m 21.309 ms - 2698[0m
+[0mGET /api/customer/reviews/product/6aa117d097facecc66781adc?limit=50 [36m304[0m 24.609 ms - -[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop/qa [36m304[0m 26.039 ms - -[0m
+[0mGET /api/customer/reviews/my/6aa117d097facecc66781adc [36m304[0m 28.064 ms - -[0m
+[0mGET /api/customer/orders?limit=50 [36m304[0m 40.071 ms - -[0m
+[0mPOST /api/auth/logout [32m200[0m 14.070 ms - 39[0m
+[0mPOST /api/auth/login [32m200[0m 203.778 ms - 643[0m
+[0mGET /api/admin/analytics [32m200[0m 17.749 ms - 226[0m
+[0mGET /api/admin/notifications?limit=1 [36m304[0m 23.364 ms - -[0m
+[0mGET /api/admin/analytics [36m304[0m 15.303 ms - -[0m
+[0mGET /api/admin/notifications?limit=1 [36m304[0m 11.177 ms - -[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 13.568 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [36m304[0m 18.277 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 19.292 ms - -[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 16.465 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [36m304[0m 17.909 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 17.198 ms - -[0m
+[0mGET /api/admin/users?page=1&limit=20 [32m200[0m 11.128 ms - 3748[0m
+[0mGET /api/admin/users/stats [36m304[0m 14.847 ms - -[0m
+[0mGET /api/admin/users?page=1&limit=20 [36m304[0m 8.112 ms - -[0m
+[0mGET /api/admin/users/stats [36m304[0m 15.301 ms - -[0m
+[0mPOST /api/auth/logout [32m200[0m 9.177 ms - 39[0m
+[0mPOST /api/auth/login [32m200[0m 737.954 ms - 730[0m
+[0mGET /api/customer/categories [36m304[0m 14.720 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [32m200[0m 21.156 ms - 12100[0m
+[0mGET /api/customer/cart [36m304[0m 30.532 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 33.548 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 21.977 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [36m304[0m 23.755 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 27.209 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 34.617 ms - -[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop [32m200[0m 17.900 ms - 2698[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop [32m200[0m 14.914 ms - 2698[0m
+[0mGET /api/customer/reviews/product/6aa117d097facecc66781adc?limit=50 [36m304[0m 13.304 ms - -[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop/qa [36m304[0m 13.798 ms - -[0m
+[0mGET /api/customer/reviews/my/6aa117d097facecc66781adc [36m304[0m 16.446 ms - -[0m
+[0mGET /api/customer/orders?limit=50 [36m304[0m 22.881 ms - -[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop [32m200[0m 16.022 ms - 2698[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop [32m200[0m 12.834 ms - 2698[0m
+[0mGET /api/customer/reviews/product/6aa117d097facecc66781adc?limit=50 [36m304[0m 17.007 ms - -[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop/qa [36m304[0m 17.935 ms - -[0m
+[0mGET /api/customer/reviews/my/6aa117d097facecc66781adc [36m304[0m 18.692 ms - -[0m
+[0mGET /api/customer/orders?limit=50 [36m304[0m 26.362 ms - -[0m
+[0mPOST /api/auth/logout [32m200[0m 6.549 ms - 39[0m
+[0mPOST /api/auth/login [32m200[0m 686.415 ms - 730[0m
+[0mGET /api/customer/categories [36m304[0m 17.573 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [32m200[0m 22.328 ms - 12101[0m
+[0mGET /api/customer/cart [36m304[0m 32.061 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 39.891 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 22.284 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [36m304[0m 18.949 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 23.004 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 25.467 ms - -[0m
+[0mGET /api/customer/returns?limit=50 [36m304[0m 11.877 ms - -[0m
+[0mGET /api/customer/returns?limit=50 [36m304[0m 9.900 ms - -[0m
+[0mGET /api/customer/returns/6aa0df64f2ce63b263fa54f7 [32m200[0m 24.527 ms - 1160[0m
+[0mGET /api/customer/returns/6aa0df64f2ce63b263fa54f7 [36m304[0m 11.165 ms - -[0m
+[0mGET /api/customer/returns/6aa0df64f2ce63b263fa54f7 [36m304[0m 10.566 ms - -[0m
+[0mGET /api/customer/returns/6aa0df64f2ce63b263fa54f7 [36m304[0m 10.322 ms - -[0m
+[0mGET /api/seller/returns?limit=50 [36m304[0m 23.136 ms - -[0m
+[0mGET /api/seller/returns?limit=50 [36m304[0m 11.353 ms - -[0m
+[0mGET /api/seller/returns?limit=50 [36m304[0m 12.198 ms - -[0m
+[0mGET /api/seller/store [36m304[0m 11.098 ms - -[0m
+[0mGET /api/seller/returns?limit=50 [36m304[0m 12.160 ms - -[0m
+[0mGET /api/seller/store [36m304[0m 12.984 ms - -[0m
+[0mGET /api/seller/returns?limit=50 [36m304[0m 10.730 ms - -[0m
+[0mGET /api/seller/store [36m304[0m 12.930 ms - -[0m
+[0mGET /api/seller/returns?limit=50 [36m304[0m 8.955 ms - -[0m
+[0mGET /api/seller/store [36m304[0m 10.346 ms - -[0m
+[0mPOST /api/auth/logout [32m200[0m 6.311 ms - 39[0m
+[0mPOST /api/auth/login [32m200[0m 187.552 ms - 643[0m
+[0mGET /api/admin/analytics [32m200[0m 12.991 ms - 226[0m
+[0mGET /api/admin/notifications?limit=1 [36m304[0m 17.635 ms - -[0m
+[0mGET /api/admin/analytics [36m304[0m 16.875 ms - -[0m
+[0mGET /api/admin/notifications?limit=1 [36m304[0m 11.553 ms - -[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 10.988 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 16.891 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [36m304[0m 19.820 ms - -[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 11.118 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 14.431 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [36m304[0m 13.062 ms - -[0m
+[0mGET /api/admin/categories?includeInactive=true [36m304[0m 15.065 ms - -[0m
+[0mGET /api/admin/categories?includeInactive=true [36m304[0m 10.929 ms - -[0m
+[0mPOST /api/auth/login [32m200[0m 178.204 ms - 643[0m
+[0mGET /api/admin/analytics [36m304[0m 17.677 ms - -[0m
+[0mGET /api/admin/notifications?limit=1 [36m304[0m 19.236 ms - -[0m
+[0mGET /api/admin/analytics [36m304[0m 12.383 ms - -[0m
+[0mGET /api/admin/notifications?limit=1 [36m304[0m 14.180 ms - -[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 9.733 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 14.377 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [36m304[0m 18.016 ms - -[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 15.730 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 13.888 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [36m304[0m 12.829 ms - -[0m
+[0mGET /api/admin/analytics [36m304[0m 21.196 ms - -[0m
+[0mGET /api/admin/notifications?limit=1 [36m304[0m 21.348 ms - -[0m
+[0mGET /api/admin/analytics [36m304[0m 15.267 ms - -[0m
+[0mGET /api/admin/notifications?limit=1 [36m304[0m 16.422 ms - -[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 12.867 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 16.742 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [36m304[0m 17.416 ms - -[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 10.807 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 13.349 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [36m304[0m 13.965 ms - -[0m
+[0mGET /api/admin/users?page=1&limit=20 [32m200[0m 9.282 ms - 3748[0m
+[0mGET /api/admin/users/stats [36m304[0m 14.086 ms - -[0m
+[0mGET /api/admin/users?page=1&limit=20 [36m304[0m 10.244 ms - -[0m
+[0mGET /api/admin/users/stats [36m304[0m 12.293 ms - -[0m
+[0mGET /api/admin/analytics [36m304[0m 22.944 ms - -[0m
+[0mGET /api/admin/notifications?limit=1 [36m304[0m 22.723 ms - -[0m
+[0mGET /api/admin/analytics [36m304[0m 17.104 ms - -[0m
+[0mGET /api/admin/notifications?limit=1 [36m304[0m 18.260 ms - -[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 11.615 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 17.523 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [36m304[0m 18.457 ms - -[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 10.855 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 14.477 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [36m304[0m 15.181 ms - -[0m
+[0mGET /api/admin/categories?includeInactive=true [36m304[0m 11.820 ms - -[0m
+[0mGET /api/admin/categories?includeInactive=true [36m304[0m 10.332 ms - -[0m
+[0mGET /api/admin/orders/stats [32m200[0m 13.481 ms - 244[0m
+[0mGET /api/admin/orders?page=1&limit=20 [36m304[0m 21.029 ms - -[0m
+[0mGET /api/admin/orders/stats [36m304[0m 13.616 ms - -[0m
+[0mGET /api/admin/orders?page=1&limit=20 [36m304[0m 12.842 ms - -[0m
+[0mGET /api/admin/coupons?page=1&limit=20 [32m200[0m 10.704 ms - 81[0m
+[0mGET /api/admin/coupons?page=1&limit=20 [36m304[0m 8.602 ms - -[0m
+[0mGET /api/admin/notifications?limit=50 [32m200[0m 8.671 ms - 1589[0m
+[0mGET /api/admin/notifications?limit=50 [36m304[0m 7.437 ms - -[0m
+[0mGET /api/admin/orders/stats [36m304[0m 12.216 ms - -[0m
+[0mGET /api/admin/orders?page=1&limit=20 [36m304[0m 20.385 ms - -[0m
+[0mGET /api/admin/orders/stats [36m304[0m 11.974 ms - -[0m
+[0mGET /api/admin/orders?page=1&limit=20 [36m304[0m 16.433 ms - -[0m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+file:///D:/Projects/ShopSphere/Backend/APIS/delivery/routes.js:113
+    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+    ^^
+
+SyntaxError: Unexpected token 'if'
+    at compileSourceTextModule (node:internal/modules/esm/utils:318:16)
+    at ModuleLoader.moduleStrategy (node:internal/modules/esm/translators:111:18)
+    at #translate (node:internal/modules/esm/loader:473:20)
+    at afterLoad (node:internal/modules/esm/loader:529:29)
+    at ModuleLoader.loadAndTranslate (node:internal/modules/esm/loader:534:12)
+    at #getOrCreateModuleJobAfterResolve (node:internal/modules/esm/loader:577:36)
+    at afterResolve (node:internal/modules/esm/loader:625:52)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:631:12)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:160:33)
+    at ModuleJob.link (node:internal/modules/esm/module_job:245:17)
+
+Node.js v24.13.1
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[0mGET /api/customer/cart [33m401[0m 12.486 ms - 54[0m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[0mGET /api/auth/me [33m401[0m 7.381 ms - 54[0m
+[0mPOST /api/auth/login [32m200[0m 248.634 ms - 791[0m
+[0mGET /api/admin/sellers [33m401[0m 1.511 ms - 54[0m
+[0mGET /api/admin/products [33m401[0m 1.325 ms - 54[0m
+[0mGET /api/admin/returns [33m401[0m 0.805 ms - 54[0m
+[0mGET /api/admin/returns/stats [33m401[0m 0.735 ms - 54[0m
+[0mPOST /api/auth/login [32m200[0m 179.543 ms - 791[0m
+[0mGET /api/admin/sellers [32m200[0m 28.551 ms - 1651[0m
+[0mGET /api/admin/products [32m200[0m 18.465 ms - 11567[0m
+[0mGET /api/admin/returns [32m200[0m 16.473 ms - 1543[0m
+[0mGET /api/admin/returns/stats [32m200[0m 24.303 ms - 148[0m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[0mPOST /api/auth/login [32m200[0m 104.165 ms - 791[0m
+[0mGET /api/admin/returns [32m200[0m 15.334 ms - 1543[0m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[0mGET /api/seller/returns [32m200[0m 69.254 ms - 891[0m
+[0mPUT /api/seller/returns/6aa120c93a09eab89d59f4a0/approve [33m400[0m 78.161 ms - 952[0m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[0mGET /api/seller/returns [32m200[0m 64.827 ms - 2068[0m
+[0mPUT /api/seller/returns/6aa120d804f479060283c3f6/approve [33m400[0m 69.701 ms - 952[0m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[0mGET /api/seller/returns [32m200[0m 68.597 ms - 3245[0m
+[0mPUT /api/seller/returns/6aa120ea23b8389bbc2138dc/approve [32m200[0m 84.435 ms - 881[0m
+[0mGET /api/delivery/returns/active [32m200[0m 17.659 ms - 3322[0m
+[0mPUT /api/delivery/returns/6aa120ea23b8389bbc2138dc/pickup [32m200[0m 29.772 ms - 1063[0m
+[0mPUT /api/delivery/returns/6aa120ea23b8389bbc2138dc/return-to-store [32m200[0m 19.171 ms - 1283[0m
+[0mPUT /api/seller/returns/6aa120ea23b8389bbc2138dc/receive [32m200[0m 89.473 ms - 1636[0m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[0mGET /api/seller/returns [32m200[0m 116.239 ms - 5190[0m
+[0mPUT /api/seller/returns/6aa1211a236aecdfe2811791/approve [32m200[0m 91.472 ms - 881[0m
+[0mGET /api/delivery/returns/active [32m200[0m 15.839 ms - 3322[0m
+[0mPUT /api/delivery/returns/6aa1211a236aecdfe2811791/pickup [32m200[0m 28.125 ms - 1063[0m
+[0mPUT /api/delivery/returns/6aa1211a236aecdfe2811791/return-to-store [32m200[0m 17.031 ms - 1283[0m
+[0mPUT /api/seller/returns/6aa1211a236aecdfe2811791/receive [32m200[0m 38.163 ms - 1636[0m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[0mGET /api/seller/returns [32m200[0m 71.184 ms - 7135[0m
+[0mPUT /api/seller/returns/6aa1212b54a867bbb5e8e6f8/approve [32m200[0m 86.935 ms - 881[0m
+[0mGET /api/delivery/returns/active [32m200[0m 19.113 ms - 3322[0m
+[0mPUT /api/delivery/returns/6aa1212b54a867bbb5e8e6f8/pickup [32m200[0m 66.210 ms - 1063[0m
+[0mPUT /api/delivery/returns/6aa1212b54a867bbb5e8e6f8/return-to-store [32m200[0m 38.070 ms - 1283[0m
+[0mPUT /api/seller/returns/6aa1212b54a867bbb5e8e6f8/receive [32m200[0m 42.313 ms - 1636[0m
+[0mGET /api/admin/returns [32m200[0m 16.290 ms - 10345[0m
+[0mGET /api/admin/returns/6aa1212b54a867bbb5e8e6f8 [32m200[0m 19.765 ms - 2959[0m
+[0mGET /api/admin/returns/stats [32m200[0m 11.281 ms - 148[0m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[0mGET /api/seller/returns [32m200[0m 71.521 ms - 9080[0m
+[0mPUT /api/seller/returns/6aa12147d97b49b3254615d4/approve [32m200[0m 84.125 ms - 881[0m
+[0mGET /api/delivery/returns/active [32m200[0m 16.967 ms - 3322[0m
+[0mPUT /api/delivery/returns/6aa12147d97b49b3254615d4/pickup [32m200[0m 31.841 ms - 1063[0m
+[0mPUT /api/delivery/returns/6aa12147d97b49b3254615d4/return-to-store [32m200[0m 17.409 ms - 1283[0m
+[0mPUT /api/seller/returns/6aa12147d97b49b3254615d4/receive [32m200[0m 36.657 ms - 1636[0m
+[0mGET /api/admin/returns [32m200[0m 17.071 ms - 12421[0m
+[0mGET /api/admin/returns/6aa12147d97b49b3254615d4 [32m200[0m 22.960 ms - 2959[0m
+[0mGET /api/admin/returns/stats [32m200[0m 10.955 ms - 148[0m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[0mPOST /api/auth/login [32m200[0m 757.616 ms - 791[0m
+[0mGET /api/admin/notifications?limit=1 [32m200[0m 277.147 ms - 626[0m
+[0mGET /api/admin/analytics [32m200[0m 343.435 ms - 268[0m
+[0mGET /api/admin/notifications?limit=1 [36m304[0m 55.724 ms - -[0m
+[0mGET /api/admin/analytics [36m304[0m 200.631 ms - -[0m
+[0mGET /api/admin/analytics/revenue?days=30 [32m200[0m 131.859 ms - 122[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [32m200[0m 238.537 ms - 806[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [32m200[0m 266.877 ms - 2394[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 152.850 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 190.067 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [36m304[0m 147.941 ms - -[0m
+[0mGET /api/admin/delivery?status=pending&page=1&limit=20 [32m200[0m 10.539 ms - 81[0m
+[0mGET /api/admin/delivery?status=pending&page=1&limit=20 [36m304[0m 8.991 ms - -[0m
+[0mGET /api/admin/products/moderation?page=1&limit=20 [32m200[0m 8.156 ms - 81[0m
+[0mGET /api/admin/products/moderation?page=1&limit=20 [36m304[0m 9.279 ms - -[0m
+[0mGET /api/admin/categories?includeInactive=true [32m200[0m 17.714 ms - 13886[0m
+[0mGET /api/admin/categories?includeInactive=true [36m304[0m 12.071 ms - -[0m
+[0mGET /api/admin/orders/stats [32m200[0m 20.481 ms - 318[0m
+[0mGET /api/admin/orders?page=1&limit=20 [32m200[0m 29.980 ms - 18122[0m
+[0mGET /api/admin/orders/stats [36m304[0m 13.210 ms - -[0m
+[0mGET /api/admin/orders?page=1&limit=20 [36m304[0m 20.365 ms - -[0m
+[0mGET /api/admin/returns/stats [32m200[0m 16.034 ms - 148[0m
+[0mGET /api/admin/returns?page=1&limit=20 [32m200[0m 25.507 ms - 10345[0m
+[0mGET /api/admin/returns/stats [36m304[0m 18.371 ms - -[0m
+[0mGET /api/admin/returns?page=1&limit=20 [36m304[0m 24.890 ms - -[0m
+[0mGET /api/admin/orders/stats [33m401[0m 1.563 ms - 54[0m
+[0mGET /api/admin/orders?page=1&limit=20 [33m401[0m 3.020 ms - 54[0m
+[0mGET /api/admin/analytics [33m401[0m 3.816 ms - 54[0m
+[0mGET /api/admin/notifications?limit=1 [33m401[0m 4.829 ms - 54[0m
+[0mGET /api/admin/orders/stats [33m401[0m 5.682 ms - 54[0m
+[0mGET /api/admin/orders?page=1&limit=20 [33m401[0m 2.253 ms - 54[0m
+[0mGET /api/admin/analytics [33m401[0m 3.286 ms - 54[0m
+[0mGET /api/admin/notifications?limit=1 [33m401[0m 4.251 ms - 54[0m
+[0mPOST /api/auth/login [32m200[0m 714.114 ms - 878[0m
+[0mGET /api/customer/categories [36m304[0m 22.164 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [32m200[0m 35.764 ms - 12101[0m
+[0mGET /api/customer/cart [36m304[0m 38.890 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 54.730 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 31.886 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [36m304[0m 37.654 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 58.373 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 52.694 ms - -[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop [32m200[0m 28.119 ms - 2699[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop [32m200[0m 14.021 ms - 2699[0m
+[0mGET /api/customer/reviews/product/6aa117d097facecc66781adc?limit=50 [32m200[0m 20.330 ms - 81[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop/qa [32m200[0m 21.164 ms - 26[0m
+[0mGET /api/customer/reviews/my/6aa117d097facecc66781adc [32m200[0m 20.992 ms - 28[0m
+[0mGET /api/customer/orders?limit=50 [32m200[0m 26.422 ms - 18697[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop [32m200[0m 19.488 ms - 2699[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop [32m200[0m 14.817 ms - 2699[0m
+[0mGET /api/customer/reviews/product/6aa117d097facecc66781adc?limit=50 [36m304[0m 18.426 ms - -[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop/qa [36m304[0m 19.989 ms - -[0m
+[0mGET /api/customer/reviews/my/6aa117d097facecc66781adc [36m304[0m 20.949 ms - -[0m
+[0mGET /api/customer/orders?limit=50 [36m304[0m 28.410 ms - -[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop [32m200[0m 18.032 ms - 2699[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop [32m200[0m 14.495 ms - 2699[0m
+[0mGET /api/customer/reviews/product/6aa117d097facecc66781adc?limit=50 [36m304[0m 12.732 ms - -[0m
+[0mGET /api/customer/products/dell-inspiron-14-plus-laptop/qa [36m304[0m 13.110 ms - -[0m
+[0mGET /api/customer/reviews/my/6aa117d097facecc66781adc [36m304[0m 14.868 ms - -[0m
+[0mGET /api/customer/orders?limit=50 [36m304[0m 25.588 ms - -[0m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[0mGET /api/customer/cart [36m304[0m 62.691 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 12.424 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 11.337 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 11.236 ms - -[0m
+[0mGET /api/customer/messages [32m200[0m 27.066 ms - 26[0m
+[Socket] Connected: xbxZor-nwOUkilnSAAAC
+[Socket] User 6a9ad979ca46aceede2cca52 registered → xbxZor-nwOUkilnSAAAC
+[0mGET /api/customer/messages [36m304[0m 10.919 ms - -[0m
+[Socket] Disconnected: xbxZor-nwOUkilnSAAAC
+[0mGET /api/customer/orders?limit=50 [36m304[0m 30.447 ms - -[0m
+[0mGET /api/customer/orders?limit=50 [36m304[0m 16.566 ms - -[0m
+[0mGET /api/customer/returns?limit=50 [32m200[0m 18.393 ms - 8181[0m
+[0mGET /api/customer/returns?limit=50 [36m304[0m 16.175 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 20.901 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 14.646 ms - -[0m
+[0mGET /api/customer/returns?limit=50 [36m304[0m 15.492 ms - -[0m
+[0mGET /api/customer/returns?limit=50 [36m304[0m 11.602 ms - -[0m
+[0mGET /api/customer/orders?limit=50 [36m304[0m 74.055 ms - -[0m
+[0mGET /api/customer/orders?limit=50 [36m304[0m 26.851 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 15.850 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 12.963 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 13.559 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 14.833 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 17.549 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [32m200[0m 29.956 ms - 12101[0m
+[0mGET /api/customer/wishlist [36m304[0m 39.799 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 24.879 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [36m304[0m 19.597 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 29.763 ms - -[0m
+[0mPOST /api/customer/cart [32m200[0m 57.645 ms - 1808[0m
+[0mGET /api/customer/cart [32m200[0m 16.093 ms - 1777[0m
+[0mGET /api/customer/cart [36m304[0m 11.558 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 14.601 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 12.345 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 13.862 ms - -[0m
+[0mGET /api/customer/users/me [32m200[0m 10.533 ms - 652[0m
+[0mGET /api/customer/users/me [36m304[0m 10.208 ms - -[0m
+[0mPOST /api/customer/orders/checkout [32m201[0m 111.398 ms - 2012[0m
+[0mGET /api/customer/cart [32m200[0m 26.763 ms - 283[0m
+[0mGET /api/customer/orders?limit=50 [32m200[0m 30.604 ms - 20378[0m
+[0mGET /api/customer/cart [36m304[0m 15.517 ms - -[0m
+[0mGET /api/customer/orders?limit=50 [36m304[0m 22.147 ms - -[0m
+[0mPOST /api/auth/login [32m200[0m 729.004 ms - 850[0m
+[0mGET /api/seller/dashboard/recent-orders [32m200[0m 49.840 ms - 225[0m
+[0mGET /api/seller/store [36m304[0m 32.110 ms - -[0m
+[0mGET /api/seller/dashboard/revenue-chart?days=14 [32m200[0m 48.604 ms - 73[0m
+[0mGET /api/seller/dashboard [32m200[0m 58.410 ms - 247[0m
+[0mGET /api/seller/store [36m304[0m 23.978 ms - -[0m
+[0mGET /api/seller/dashboard/recent-orders [36m304[0m 37.789 ms - -[0m
+[0mGET /api/seller/dashboard/revenue-chart?days=14 [36m304[0m 38.013 ms - -[0m
+[0mGET /api/seller/dashboard [36m304[0m 44.241 ms - -[0m
+[0mGET /api/seller/orders?page=1&limit=20 [32m200[0m 15.254 ms - 1609[0m
+[0mGET /api/seller/orders?page=1&limit=20 [36m304[0m 12.374 ms - -[0m
+[0mPUT /api/seller/orders/6aa1223fc5dbc3a3cd66fc7a/status [32m200[0m 20.718 ms - 1645[0m
+[0mGET /api/seller/orders?page=1&limit=20 [32m200[0m 14.713 ms - 1756[0m
+[0mPUT /api/seller/orders/6aa1223fc5dbc3a3cd66fc7a/status [32m200[0m 15.475 ms - 1780[0m
+[0mGET /api/seller/orders?page=1&limit=20 [32m200[0m 13.220 ms - 1894[0m
+[0mPUT /api/seller/orders/6aa1223fc5dbc3a3cd66fc7a/status [32m200[0m 29.525 ms - 1979[0m
+[0mGET /api/seller/orders?page=1&limit=20 [32m200[0m 15.379 ms - 2162[0m
+[0mGET /api/seller/orders?page=1&limit=20 [36m304[0m 13.058 ms - -[0m
+[0mGET /api/seller/orders?page=1&limit=20 [36m304[0m 14.004 ms - -[0m
+[0mGET /api/seller/orders/6aa1223fc5dbc3a3cd66fc7a [32m200[0m 20.152 ms - 3108[0m
+[0mGET /api/seller/orders/6aa1223fc5dbc3a3cd66fc7a [36m304[0m 20.237 ms - -[0m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[0mPOST /api/auth/logout [32m200[0m 112.407 ms - 39[0m
+[0mPOST /api/auth/login [33m401[0m 923.241 ms - 49[0m
+[0mPOST /api/auth/login [32m200[0m 940.358 ms - 815[0m
+[0mGET /api/auth/me [32m200[0m 48.145 ms - 589[0m
+[0mGET /api/delivery/orders/available?page=1&limit=1 [36m304[0m 69.177 ms - -[0m
+[0mGET /api/delivery/returns/active [32m200[0m 83.792 ms - 2223[0m
+[0mGET /api/auth/me [36m304[0m 38.127 ms - -[0m
+[0mGET /api/delivery/orders/available?page=1&limit=1 [36m304[0m 27.279 ms - -[0m
+[0mGET /api/delivery/returns/active [36m304[0m 47.627 ms - -[0m
+[0mGET /api/delivery/stats [32m200[0m 32.003 ms - 127[0m
+[0mGET /api/delivery/orders/active [32m200[0m 33.022 ms - 26[0m
+[0mGET /api/delivery/orders/available?page=1&limit=4 [32m200[0m 34.412 ms - 80[0m
+[0mGET /api/delivery/stats [36m304[0m 28.375 ms - -[0m
+[0mGET /api/delivery/orders/active [36m304[0m 28.910 ms - -[0m
+[0mGET /api/delivery/orders/available?page=1&limit=4 [36m304[0m 33.652 ms - -[0m
+[0mGET /api/delivery/returns/active [36m304[0m 35.239 ms - -[0m
+[0mGET /api/delivery/returns/available?limit=20 [32m200[0m 34.642 ms - 81[0m
+[0mGET /api/delivery/returns/available?limit=20 [36m304[0m 33.397 ms - -[0m
+[0mGET /api/delivery/returns/active [36m304[0m 41.846 ms - -[0m
+[0mGET /api/delivery/orders/assigned [32m200[0m 15.010 ms - 2056[0m
+[0mGET /api/delivery/orders/assigned [36m304[0m 10.456 ms - -[0m
+[0mPUT /api/delivery/orders/6aa1223fc5dbc3a3cd66fc7a/start [32m200[0m 34.601 ms - 2123[0m
+[0mGET /api/delivery/orders/assigned [32m200[0m 9.150 ms - 26[0m
+[0mGET /api/delivery/orders/available?page=1&limit=1 [36m304[0m 14.217 ms - -[0m
+[0mGET /api/delivery/returns/active [36m304[0m 21.699 ms - -[0m
+[0mGET /api/delivery/orders/active [32m200[0m 13.862 ms - 2252[0m
+[0mGET /api/delivery/orders/active [36m304[0m 10.492 ms - -[0m
+[0mPUT /api/delivery/orders/6aa1223fc5dbc3a3cd66fc7a/deliver [32m200[0m 47.292 ms - 2327[0m
+[0mGET /api/delivery/orders/active [32m200[0m 15.492 ms - 26[0m
+[0mGET /api/delivery/orders/available?page=1&limit=1 [36m304[0m 17.395 ms - -[0m
+[0mGET /api/delivery/returns/active [36m304[0m 23.173 ms - -[0m
+[0mGET /api/delivery/returns/available?limit=20 [36m304[0m 17.003 ms - -[0m
+[0mGET /api/delivery/returns/active [36m304[0m 23.152 ms - -[0m
+[0mGET /api/delivery/returns/available?limit=20 [36m304[0m 11.404 ms - -[0m
+[0mGET /api/delivery/returns/active [36m304[0m 16.386 ms - -[0m
+[0mPUT /api/delivery/returns/6aa120d804f479060283c3f6/pickup [32m200[0m 28.768 ms - 1075[0m
+[0mGET /api/delivery/returns/available?limit=20 [36m304[0m 15.114 ms - -[0m
+[0mGET /api/delivery/returns/active [32m200[0m 19.380 ms - 2433[0m
+[0mGET /api/delivery/orders/available?page=1&limit=1 [36m304[0m 15.934 ms - -[0m
+[0mGET /api/delivery/returns/active [36m304[0m 15.316 ms - -[0m
+[0mPUT /api/delivery/returns/6aa120d804f479060283c3f6/return-to-store [32m200[0m 17.142 ms - 1307[0m
+[0mGET /api/delivery/returns/available?limit=20 [36m304[0m 17.413 ms - -[0m
+[0mGET /api/delivery/returns/active [32m200[0m 22.362 ms - 1124[0m
+[0mGET /api/delivery/orders/available?page=1&limit=1 [36m304[0m 17.308 ms - -[0m
+[0mGET /api/delivery/returns/active [36m304[0m 9.991 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 21.579 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [32m200[0m 27.576 ms - 12105[0m
+[0mGET /api/customer/wishlist [36m304[0m 40.144 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 17.713 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [36m304[0m 21.811 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 25.567 ms - -[0m
+[0mGET /api/customer/returns?limit=50 [32m200[0m 23.512 ms - 8623[0m
+[0mGET /api/customer/returns?limit=50 [36m304[0m 16.625 ms - -[0m
+[0mPOST /api/auth/logout [32m200[0m 7.008 ms - 39[0m
+[0mPOST /api/auth/login [32m200[0m 689.644 ms - 850[0m
+[0mGET /api/seller/dashboard/revenue-chart?days=14 [36m304[0m 41.663 ms - -[0m
+[0mGET /api/seller/dashboard/recent-orders [32m200[0m 46.521 ms - 228[0m
+[0mGET /api/seller/store [36m304[0m 43.076 ms - -[0m
+[0mGET /api/seller/dashboard [32m200[0m 56.959 ms - 247[0m
+[0mGET /api/seller/dashboard/revenue-chart?days=14 [36m304[0m 21.216 ms - -[0m
+[0mGET /api/seller/store [36m304[0m 25.705 ms - -[0m
+[0mGET /api/seller/dashboard/recent-orders [36m304[0m 28.841 ms - -[0m
+[0mGET /api/seller/dashboard [36m304[0m 33.128 ms - -[0m
+[0mGET /api/seller/notifications?limit=50 [32m200[0m 11.681 ms - 1348[0m
+[0mGET /api/seller/notifications?limit=50 [36m304[0m 10.568 ms - -[0m
+[0mGET /api/seller/orders?page=1&limit=20 [32m200[0m 16.605 ms - 2563[0m
+[0mGET /api/seller/orders?page=1&limit=20 [36m304[0m 17.268 ms - -[0m
+[0mGET /api/seller/returns?limit=50 [36m304[0m 10.749 ms - -[0m
+[0mGET /api/seller/returns?limit=50 [36m304[0m 9.536 ms - -[0m
+[0mPOST /api/auth/logout [32m200[0m 7.751 ms - 39[0m
+[0mPOST /api/auth/login [32m200[0m 726.645 ms - 851[0m
+[0mGET /api/seller/store [32m200[0m 31.100 ms - 710[0m
+[0mGET /api/seller/dashboard/revenue-chart?days=14 [32m200[0m 34.871 ms - 119[0m
+[0mGET /api/seller/dashboard/recent-orders [32m200[0m 38.374 ms - 1510[0m
+[0mGET /api/seller/dashboard [32m200[0m 59.579 ms - 247[0m
+[0mGET /api/seller/store [36m304[0m 24.634 ms - -[0m
+[0mGET /api/seller/dashboard/revenue-chart?days=14 [36m304[0m 24.922 ms - -[0m
+[0mGET /api/seller/dashboard/recent-orders [36m304[0m 30.540 ms - -[0m
+[0mGET /api/seller/dashboard [36m304[0m 30.144 ms - -[0m
+[0mGET /api/seller/dashboard/revenue-chart?days=14 [36m304[0m 33.070 ms - -[0m
+[0mGET /api/seller/dashboard/recent-orders [36m304[0m 35.902 ms - -[0m
+[0mGET /api/seller/dashboard [36m304[0m 43.134 ms - -[0m
+[0mGET /api/seller/dashboard/revenue-chart?days=14 [36m304[0m 14.249 ms - -[0m
+[0mGET /api/seller/dashboard/recent-orders [36m304[0m 27.041 ms - -[0m
+[0mGET /api/seller/dashboard [36m304[0m 26.659 ms - -[0m
+[0mGET /api/seller/notifications?limit=50 [32m200[0m 11.385 ms - 1281[0m
+[0mGET /api/seller/notifications?limit=50 [36m304[0m 10.311 ms - -[0m
+[Socket] Connected: 8_U6VOUHx8XvoPWPAAAC
+[Socket] User 6a9b06d7ca46aceede2cca57 registered → 8_U6VOUHx8XvoPWPAAAC
+[0mGET /api/seller/messages [32m200[0m 46.750 ms - 26[0m
+[0mGET /api/seller/messages [36m304[0m 13.596 ms - -[0m
+[Socket] Disconnected: 8_U6VOUHx8XvoPWPAAAC
+[0mGET /api/seller/wallet/withdrawals?limit=20 [32m200[0m 24.928 ms - 81[0m
+[0mGET /api/seller/wallet/transactions?limit=20 [32m200[0m 31.824 ms - 1866[0m
+[0mGET /api/seller/wallet [32m200[0m 37.212 ms - 163[0m
+[0mGET /api/seller/wallet/withdrawals?limit=20 [36m304[0m 15.112 ms - -[0m
+[0mGET /api/seller/wallet/transactions?limit=20 [36m304[0m 27.100 ms - -[0m
+[0mGET /api/seller/wallet [36m304[0m 22.117 ms - -[0m
+[0mGET /api/seller/dashboard [36m304[0m 27.224 ms - -[0m
+[0mGET /api/seller/dashboard/revenue-chart?days=14 [36m304[0m 29.852 ms - -[0m
+[0mGET /api/seller/dashboard/recent-orders [36m304[0m 33.394 ms - -[0m
+[0mGET /api/seller/dashboard [36m304[0m 27.795 ms - -[0m
+[0mGET /api/seller/dashboard/revenue-chart?days=14 [36m304[0m 27.200 ms - -[0m
+[0mGET /api/seller/dashboard/recent-orders [36m304[0m 29.760 ms - -[0m
+[0mGET /api/customer/orders?limit=50 [32m200[0m 15.099 ms - 21521[0m
+[0mGET /api/customer/orders?limit=50 [36m304[0m 13.354 ms - -[0m
+[0mPOST /api/customer/returns [32m201[0m 37.849 ms - 928[0m
+[0mGET /api/customer/returns?limit=50 [32m200[0m 13.841 ms - 10571[0m
+[0mPOST /api/auth/logout [32m200[0m 6.933 ms - 39[0m
+[0mPOST /api/auth/login [32m200[0m 752.652 ms - 850[0m
+[0mGET /api/seller/store [32m200[0m 56.746 ms - 961[0m
+[0mGET /api/seller/dashboard/revenue-chart?days=14 [32m200[0m 61.221 ms - 73[0m
+[0mGET /api/seller/dashboard/recent-orders [32m200[0m 64.391 ms - 235[0m
+[0mGET /api/seller/dashboard [32m200[0m 77.973 ms - 247[0m
+[0mGET /api/seller/store [36m304[0m 29.521 ms - -[0m
+[0mGET /api/seller/dashboard/revenue-chart?days=14 [36m304[0m 32.694 ms - -[0m
+[0mGET /api/seller/dashboard/recent-orders [36m304[0m 44.584 ms - -[0m
+[0mGET /api/seller/dashboard [36m304[0m 36.127 ms - -[0m
+[0mPOST /api/auth/logout [32m200[0m 6.623 ms - 39[0m
+[0mPOST /api/auth/login [32m200[0m 724.554 ms - 850[0m
+[0mGET /api/seller/dashboard [32m200[0m 31.690 ms - 251[0m
+[0mGET /api/seller/dashboard/revenue-chart?days=14 [32m200[0m 34.925 ms - 75[0m
+[0mGET /api/seller/dashboard/recent-orders [32m200[0m 40.206 ms - 640[0m
+[0mGET /api/seller/store [32m200[0m 35.906 ms - 670[0m
+[0mGET /api/seller/dashboard [36m304[0m 34.131 ms - -[0m
+[0mGET /api/seller/dashboard/revenue-chart?days=14 [36m304[0m 32.886 ms - -[0m
+[0mGET /api/seller/store [36m304[0m 30.586 ms - -[0m
+[0mGET /api/seller/dashboard/recent-orders [36m304[0m 32.484 ms - -[0m
+[0mGET /api/seller/wallet/withdrawals?limit=20 [36m304[0m 20.619 ms - -[0m
+[0mGET /api/seller/wallet [36m304[0m 23.120 ms - -[0m
+[0mGET /api/seller/wallet/transactions?limit=20 [32m200[0m 23.834 ms - 81[0m
+[0mGET /api/seller/wallet/withdrawals?limit=20 [36m304[0m 14.880 ms - -[0m
+[0mGET /api/seller/wallet [36m304[0m 20.003 ms - -[0m
+[0mGET /api/seller/wallet/transactions?limit=20 [36m304[0m 18.695 ms - -[0m
+[0mGET /api/seller/returns?limit=50 [32m200[0m 13.905 ms - 1364[0m
+[0mGET /api/seller/returns?limit=50 [36m304[0m 10.817 ms - -[0m
+[0mPUT /api/seller/returns/6aa0df64f2ce63b263fa54f7/reject [32m200[0m 20.601 ms - 1041[0m
+[0mGET /api/seller/returns?limit=50 [32m200[0m 14.364 ms - 1508[0m
+[0mGET /api/seller/orders?page=1&limit=20 [32m200[0m 12.750 ms - 5962[0m
+[0mGET /api/seller/orders?page=1&limit=20 [36m304[0m 13.621 ms - -[0m
+[0mGET /api/seller/products?page=1&limit=12 [32m200[0m 11.414 ms - 1275[0m
+[0mGET /api/seller/products?page=1&limit=12 [36m304[0m 11.608 ms - -[0m
+[0mGET /api/seller/dashboard [36m304[0m 23.182 ms - -[0m
+[0mGET /api/seller/dashboard/revenue-chart?days=14 [36m304[0m 26.529 ms - -[0m
+[0mGET /api/seller/dashboard/recent-orders [36m304[0m 30.926 ms - -[0m
+[0mGET /api/seller/dashboard [36m304[0m 23.688 ms - -[0m
+[0mGET /api/seller/dashboard/revenue-chart?days=14 [36m304[0m 21.346 ms - -[0m
+[0mGET /api/seller/dashboard/recent-orders [36m304[0m 24.226 ms - -[0m
+[0mGET /api/seller/notifications?limit=50 [32m200[0m 9.727 ms - 3472[0m
+[0mGET /api/seller/notifications?limit=50 [36m304[0m 13.385 ms - -[0m
+[0mPOST /api/auth/logout [32m200[0m 6.370 ms - 39[0m
+[0mGET /api/customer/categories [32m200[0m 8.059 ms - 12451[0m
+[0mGET /api/admin/delivery [33m401[0m 0.861 ms - 54[0m
+[0mPOST /api/auth/register [33m400[0m 5.522 ms - 517[0m
+[0mPOST /api/auth/login [32m200[0m 174.899 ms - 791[0m
+[0mGET /api/admin/analytics [32m200[0m 17.026 ms - 268[0m
+[0mGET /api/admin/notifications?limit=1 [36m304[0m 19.251 ms - -[0m
+[0mGET /api/admin/analytics [36m304[0m 15.709 ms - -[0m
+[0mGET /api/admin/notifications?limit=1 [36m304[0m 16.534 ms - -[0m
+[0mGET /api/admin/analytics/revenue?days=30 [32m200[0m 11.255 ms - 123[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [32m200[0m 15.788 ms - 810[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [32m200[0m 17.594 ms - 3086[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 13.025 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 14.183 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [36m304[0m 15.098 ms - -[0m
+[0mGET /api/admin/users?page=1&limit=20 [32m200[0m 9.883 ms - 4529[0m
+[0mGET /api/admin/users/stats [36m304[0m 15.441 ms - -[0m
+[0mGET /api/admin/users?page=1&limit=20 [36m304[0m 9.442 ms - -[0m
+[0mGET /api/admin/users/stats [36m304[0m 13.464 ms - -[0m
+[0mGET /api/admin/sellers?page=1&limit=20 [32m200[0m 10.080 ms - 1655[0m
+[0mGET /api/admin/sellers?page=1&limit=20 [36m304[0m 8.444 ms - -[0m
+[0mPOST /api/auth/logout [32m200[0m 6.491 ms - 39[0m
+[0mPOST /api/auth/login [32m200[0m 680.738 ms - 850[0m
+[0mGET /api/seller/dashboard [32m200[0m 23.661 ms - 247[0m
+[0mGET /api/seller/store [32m200[0m 28.027 ms - 961[0m
+[0mGET /api/seller/dashboard/revenue-chart?days=14 [32m200[0m 29.556 ms - 73[0m
+[0mGET /api/seller/dashboard/recent-orders [32m200[0m 32.217 ms - 235[0m
+[0mGET /api/seller/dashboard [36m304[0m 27.998 ms - -[0m
+[0mGET /api/seller/store [36m304[0m 25.964 ms - -[0m
+[0mGET /api/seller/dashboard/revenue-chart?days=14 [36m304[0m 26.534 ms - -[0m
+[0mGET /api/seller/dashboard/recent-orders [36m304[0m 26.722 ms - -[0m
+[0mGET /api/seller/returns?limit=50 [32m200[0m 13.236 ms - 2169[0m
+[0mGET /api/seller/returns?limit=50 [36m304[0m 17.306 ms - -[0m
+[0mPUT /api/seller/returns/6aa1234f7965172f9e55b8d3/approve [32m200[0m 36.420 ms - 1124[0m
+[0mGET /api/seller/returns?limit=50 [32m200[0m 14.507 ms - 2438[0m
+[0mPOST /api/auth/logout [32m200[0m 8.252 ms - 39[0m
+[0mPOST /api/auth/login [33m401[0m 3.264 ms - 49[0m
+[0mPOST /api/auth/login [33m401[0m 6.387 ms - 49[0m
+[0mPOST /api/auth/login [32m200[0m 667.118 ms - 815[0m
+[0mGET /api/auth/me [32m200[0m 19.531 ms - 589[0m
+[0mGET /api/delivery/orders/available?page=1&limit=1 [36m304[0m 20.097 ms - -[0m
+[0mGET /api/delivery/returns/active [32m200[0m 30.145 ms - 3393[0m
+[0mGET /api/auth/me [36m304[0m 17.592 ms - -[0m
+[0mGET /api/delivery/orders/available?page=1&limit=1 [36m304[0m 18.235 ms - -[0m
+[0mGET /api/delivery/returns/active [36m304[0m 20.489 ms - -[0m
+[0mGET /api/delivery/stats [32m200[0m 17.288 ms - 127[0m
+[0mGET /api/delivery/orders/active [36m304[0m 17.889 ms - -[0m
+[0mGET /api/delivery/orders/available?page=1&limit=4 [36m304[0m 18.275 ms - -[0m
+[0mGET /api/delivery/stats [36m304[0m 16.062 ms - -[0m
+[0mGET /api/delivery/orders/active [36m304[0m 16.987 ms - -[0m
+[0mGET /api/delivery/orders/available?page=1&limit=4 [36m304[0m 17.518 ms - -[0m
+[0mGET /api/delivery/returns/active [36m304[0m 17.754 ms - -[0m
+[0mGET /api/delivery/returns/available?limit=20 [36m304[0m 16.523 ms - -[0m
+[0mGET /api/delivery/returns/available?limit=20 [36m304[0m 13.678 ms - -[0m
+[0mGET /api/delivery/returns/active [36m304[0m 16.407 ms - -[0m
+[0mPOST /api/auth/logout [32m200[0m 7.200 ms - 39[0m
+[0mGET /api/admin/returns/stats [33m401[0m 6.444 ms - 54[0m
+[0mGET /api/admin/returns?page=1&limit=20 [33m401[0m 2.783 ms - 54[0m
+[0mGET /api/admin/analytics [33m401[0m 4.624 ms - 54[0m
+[0mGET /api/admin/notifications?limit=1 [33m401[0m 5.339 ms - 54[0m
+[0mGET /api/admin/returns/stats [33m401[0m 6.582 ms - 54[0m
+[0mGET /api/admin/returns?page=1&limit=20 [33m401[0m 2.297 ms - 54[0m
+[0mGET /api/admin/analytics [33m401[0m 3.432 ms - 54[0m
+[0mGET /api/admin/notifications?limit=1 [33m401[0m 4.592 ms - 54[0m
+[0mPOST /api/auth/login [32m200[0m 196.714 ms - 791[0m
+[0mGET /api/admin/analytics [32m200[0m 29.156 ms - 268[0m
+[0mGET /api/admin/notifications?limit=1 [36m304[0m 31.438 ms - -[0m
+[0mGET /api/admin/analytics [36m304[0m 21.892 ms - -[0m
+[0mGET /api/admin/notifications?limit=1 [36m304[0m 14.875 ms - -[0m
+[0mGET /api/admin/analytics/revenue?days=30 [32m200[0m 14.882 ms - 123[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [32m200[0m 23.186 ms - 810[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [32m200[0m 24.873 ms - 3086[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 20.529 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 20.052 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [36m304[0m 21.160 ms - -[0m
+[0mGET /api/admin/users?page=1&limit=20 [32m200[0m 13.783 ms - 4529[0m
+[0mGET /api/admin/users/stats [32m200[0m 27.369 ms - 209[0m
+[0mGET /api/admin/users?page=1&limit=20 [36m304[0m 12.965 ms - -[0m
+[0mGET /api/admin/users/stats [36m304[0m 21.437 ms - -[0m
+[0mGET /api/admin/delivery?status=pending&page=1&limit=20 [36m304[0m 12.218 ms - -[0m
+[0mGET /api/admin/delivery?status=pending&page=1&limit=20 [36m304[0m 10.408 ms - -[0m
+[0mGET /api/admin/delivery?status=pending&page=1&limit=20 [36m304[0m 14.297 ms - -[0m
+[0mGET /api/admin/analytics [36m304[0m 32.110 ms - -[0m
+[0mGET /api/admin/notifications?limit=1 [36m304[0m 36.102 ms - -[0m
+[0mGET /api/admin/delivery?status=pending&page=1&limit=20 [36m304[0m 18.561 ms - -[0m
+[0mGET /api/admin/delivery?status=approved&page=1&limit=20 [32m200[0m 8.802 ms - 583[0m
+[0mGET /api/admin/products/moderation?page=1&limit=20 [36m304[0m 12.819 ms - -[0m
+[0mGET /api/admin/products/moderation?page=1&limit=20 [36m304[0m 9.926 ms - -[0m
+[0mGET /api/admin/categories?includeInactive=true [36m304[0m 20.591 ms - -[0m
+[0mGET /api/admin/categories?includeInactive=true [36m304[0m 16.340 ms - -[0m
+[0mGET /api/admin/products/moderation?page=1&limit=20 [36m304[0m 13.400 ms - -[0m
+[0mGET /api/admin/products/moderation?page=1&limit=20 [36m304[0m 10.087 ms - -[0m
+[0mGET /api/admin/products?status=active&page=1&limit=20 [32m200[0m 14.870 ms - 10758[0m
+[0mPUT /api/admin/products/6aa117d097facecc66781adc/featured [32m200[0m 14.383 ms - 72[0m
+[0mGET /api/admin/products?status=active&page=1&limit=20 [32m200[0m 15.164 ms - 10757[0m
+[0mPUT /api/admin/products/6aa117d097facecc66781adc/featured [32m200[0m 12.277 ms - 75[0m
+[0mGET /api/admin/products?status=active&page=1&limit=20 [32m200[0m 22.399 ms - 10758[0m
+[0mGET /api/admin/categories?includeInactive=true [36m304[0m 14.874 ms - -[0m
+[0mGET /api/admin/categories?includeInactive=true [36m304[0m 15.199 ms - -[0m
+[0mGET /api/admin/orders/stats [32m200[0m 20.302 ms - 353[0m
+[0mGET /api/admin/orders?page=1&limit=20 [32m200[0m 32.592 ms - 21063[0m
+[0mGET /api/admin/orders/stats [36m304[0m 16.755 ms - -[0m
+[0mGET /api/admin/orders?page=1&limit=20 [36m304[0m 18.475 ms - -[0m
+[0mGET /api/admin/returns/stats [32m200[0m 27.999 ms - 148[0m
+[0mGET /api/admin/returns?page=1&limit=20 [32m200[0m 43.531 ms - 13412[0m
+[0mGET /api/admin/returns/stats [36m304[0m 19.919 ms - -[0m
+[0mGET /api/admin/returns?page=1&limit=20 [36m304[0m 28.023 ms - -[0m
+[0mGET /api/admin/returns/6aa1234f7965172f9e55b8d3 [32m200[0m 36.014 ms - 3262[0m
+[0mGET /api/admin/returns/6aa1234f7965172f9e55b8d3 [36m304[0m 24.892 ms - -[0m
+[0mGET /api/admin/returns/6aa1234f7965172f9e55b8d3 [36m304[0m 25.890 ms - -[0m
+[0mGET /api/admin/returns/6aa1234f7965172f9e55b8d3 [36m304[0m 25.097 ms - -[0m
+[0mPOST /api/auth/register [31m500[0m 1653.193 ms - 48[0m
+[0mGET /api/admin/coupons?page=1&limit=20 [32m200[0m 13.475 ms - 81[0m
+[0mGET /api/admin/coupons?page=1&limit=20 [36m304[0m 9.627 ms - -[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 17.184 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 27.910 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [36m304[0m 32.662 ms - -[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 20.813 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 22.578 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [36m304[0m 21.041 ms - -[0m
+[0mPOST /api/auth/logout [32m200[0m 8.256 ms - 39[0m
+[0mPOST /api/auth/register [32m201[0m 3145.824 ms - 1005[0m
+[0mPOST /api/auth/login [32m200[0m 738.698 ms - 878[0m
+[0mGET /api/customer/categories [32m200[0m 33.315 ms - 12451[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [32m200[0m 33.753 ms - 12105[0m
+[0mGET /api/customer/wishlist [32m200[0m 72.995 ms - 667[0m
+[0mGET /api/customer/cart [32m200[0m 61.365 ms - 283[0m
+[0mGET /api/customer/categories [36m304[0m 66.780 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [36m304[0m 51.562 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 43.723 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 54.164 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 11.825 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 10.314 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 10.447 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 9.153 ms - -[0m
+[0mGET /api/customer/messages [32m200[0m 16.243 ms - 26[0m
+[Socket] Connected: otlv_os_ZujeI-hwAAAF
+[0mGET /api/customer/messages [36m304[0m 10.073 ms - -[0m
+[Socket] User 6a9ad979ca46aceede2cca52 registered → otlv_os_ZujeI-hwAAAF
+[Socket] Disconnected: otlv_os_ZujeI-hwAAAF
+[0mGET /api/customer/orders?limit=50 [32m200[0m 21.023 ms - 21882[0m
+[0mGET /api/customer/orders?limit=50 [36m304[0m 17.894 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 20.087 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 19.398 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 24.033 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [36m304[0m 27.936 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 38.352 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 22.277 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [36m304[0m 25.110 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 35.317 ms - -[0m
+[0mGET /api/ai/search-suggestions?q=ka&limit=6 [32m200[0m 22.521 ms - 41[0m
+[0mGET /api/ai/search-suggestions?q=k&limit=6 [32m200[0m 8.222 ms - 41[0m
+[0mGET /api/ai/search-suggestions?q=s&limit=6 [32m200[0m 7.801 ms - 75[0m
+[0mGET /api/ai/search-suggestions?q=sa&limit=6 [32m200[0m 7.154 ms - 47[0m
+[0mGET /api/ai/search-suggestions?q=sam&limit=6 [32m200[0m 7.953 ms - 47[0m
+[0mGET /api/ai/search-suggestions?q=sa&limit=6 [36m304[0m 7.479 ms - -[0m
+[0mGET /api/ai/search-suggestions?q=s&limit=6 [36m304[0m 9.221 ms - -[0m
+[32m[nodemon] restarting due to changes...[39m
+[0mGET /api/ai/search-suggestions?q=s&limit=6 [36m304[0m 6.042 ms - -[0m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[0mGET /api/ai/search-suggestions?q=sa&limit=6 [36m304[0m 71.716 ms - -[0m
+[0mGET /api/ai/search-suggestions?q=sam&limit=6 [36m304[0m 84.690 ms - -[0m
+[0mGET /api/ai/search-suggestions?q=samsu&limit=6 [32m200[0m 55.098 ms - 47[0m
+[0mGET /api/ai/search-suggestions?q=samsung&limit=6 [32m200[0m 33.311 ms - 47[0m
+[0mGET /api/ai/search-suggestions?q=samsun&limit=6 [32m200[0m 23.954 ms - 47[0m
+[0mGET /api/ai/search-suggestions?q=samsung&limit=6 [36m304[0m 8.423 ms - -[0m
+[0mGET /api/ai/search-suggestions?q=samsung+6&limit=6 [32m200[0m 616.108 ms - 26[0m
+[0mGET /api/ai/search-suggestions?q=samsung+63&limit=6 [32m200[0m 618.453 ms - 26[0m
+[0mGET /api/ai/search-suggestions?q=samsung+64&limit=6 [32m200[0m 618.547 ms - 26[0m
+[0mGET /api/ai/search-suggestions?q=samsung+6&limit=6 [36m304[0m 621.110 ms - -[0m
+[0mGET /api/ai/search-suggestions?q=o&limit=6 [32m200[0m 12.788 ms - 48[0m
+[0mGET /api/ai/search-suggestions?q=one&limit=6 [32m200[0m 10.312 ms - 48[0m
+[0mGET /api/ai/search-suggestions?q=on&limit=6 [32m200[0m 7.158 ms - 48[0m
+[0mGET /api/ai/search-suggestions?q=o&limit=6 [36m304[0m 7.649 ms - -[0m
+[0mGET /api/ai/search-suggestions?q=o&limit=6 [36m304[0m 6.976 ms - -[0m
+[0mGET /api/ai/search-suggestions?q=on&limit=6 [36m304[0m 7.876 ms - -[0m
+[0mGET /api/ai/search-suggestions?q=o&limit=6 [36m304[0m 9.333 ms - -[0m
+[0mPOST /api/auth/register [33m400[0m 11.992 ms - 80[0m
+[0mPOST /api/ai/natural-search [32m200[0m 7592.534 ms - 282[0m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[0mPOST /api/auth/register [33m400[0m 2347.580 ms - 116[0m
+[0mGET /api/customer/returns?limit=50 [33m401[0m 15.260 ms - 54[0m
+[0mGET /api/customer/returns?limit=50 [33m401[0m 5.365 ms - 54[0m
+[0mGET /api/customer/cart [33m401[0m 7.061 ms - 54[0m
+[0mGET /api/customer/cart [33m401[0m 2.652 ms - 54[0m
+[0mPOST /api/auth/register [32m201[0m 2996.458 ms - 1018[0m
+[0mPOST /api/auth/login [33m401[0m 146.699 ms - 49[0m
+[0mGET /api/admin/delivery?status=pending [32m200[0m 15.136 ms - 1707[0m
+[0mPOST /api/auth/logout [33m401[0m 2.262 ms - 54[0m
+[0mPOST /api/auth/register [32m201[0m 2766.159 ms - 1006[0m
+[0mPOST /api/auth/login [32m200[0m 203.270 ms - 791[0m
+[0mGET /api/admin/notifications?limit=1 [32m200[0m 42.747 ms - 604[0m
+[0mGET /api/admin/analytics [32m200[0m 55.770 ms - 269[0m
+[0mGET /api/admin/notifications?limit=1 [36m304[0m 17.128 ms - -[0m
+[0mGET /api/admin/analytics [36m304[0m 29.396 ms - -[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 22.496 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 60.492 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [36m304[0m 68.237 ms - -[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 40.482 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 17.661 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [36m304[0m 17.658 ms - -[0m
+[0mGET /api/admin/delivery?status=pending&page=1&limit=20 [32m200[0m 15.377 ms - 2515[0m
+[0mGET /api/admin/delivery?status=pending&page=1&limit=20 [36m304[0m 11.446 ms - -[0m
+[0mPUT /api/admin/delivery/6aa1293e21f17d4d9d7e642a/verify [32m200[0m 29.626 ms - 902[0m
+[0mGET /api/admin/delivery?status=pending&page=1&limit=20 [32m200[0m 12.269 ms - 1695[0m
+[0mPUT /api/admin/delivery/6aa126c87965172f9e55b91a/verify [32m200[0m 25.630 ms - 889[0m
+[0mGET /api/admin/delivery?status=pending&page=1&limit=20 [32m200[0m 13.964 ms - 888[0m
+[0mPUT /api/admin/delivery/6aa12b2021f17d4d9d7e642c/verify [32m200[0m 25.260 ms - 890[0m
+[0mGET /api/admin/delivery?status=pending&page=1&limit=20 [32m200[0m 11.844 ms - 81[0m
+[0mGET /api/admin/delivery?status=pending&page=1&limit=20 [36m304[0m 36.983 ms - -[0m
+[0mGET /api/admin/notifications?limit=1 [36m304[0m 46.341 ms - -[0m
+[0mGET /api/admin/delivery?status=pending&page=1&limit=20 [36m304[0m 14.623 ms - -[0m
+[0mGET /api/admin/analytics [32m200[0m 65.823 ms - 269[0m
+[0mGET /api/admin/notifications?limit=50 [32m200[0m 12.244 ms - 3083[0m
+[0mGET /api/admin/notifications?limit=50 [36m304[0m 15.676 ms - -[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 19.094 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 26.549 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [36m304[0m 29.779 ms - -[0m
+[0mGET /api/admin/analytics/revenue?days=30 [36m304[0m 16.410 ms - -[0m
+[0mGET /api/admin/analytics/top-sellers?limit=5 [36m304[0m 20.747 ms - -[0m
+[0mGET /api/admin/analytics/top-products?limit=5 [36m304[0m 16.625 ms - -[0m
+[0mGET /api/admin/users?page=1&limit=20 [32m200[0m 18.849 ms - 7034[0m
+[0mGET /api/admin/users/stats [32m200[0m 26.425 ms - 211[0m
+[0mGET /api/admin/users?page=1&limit=20 [36m304[0m 10.989 ms - -[0m
+[0mGET /api/admin/users/stats [36m304[0m 19.527 ms - -[0m
+[0mGET /api/admin/sellers?page=1&limit=20 [36m304[0m 16.822 ms - -[0m
+[0mGET /api/admin/sellers?page=1&limit=20 [36m304[0m 12.140 ms - -[0m
+[0mGET /api/admin/delivery?status=pending&page=1&limit=20 [36m304[0m 15.276 ms - -[0m
+[0mGET /api/admin/delivery?status=pending&page=1&limit=20 [36m304[0m 11.501 ms - -[0m
+[0mGET /api/admin/notifications?limit=50 [36m304[0m 9.812 ms - -[0m
+[0mGET /api/admin/notifications?limit=50 [36m304[0m 10.881 ms - -[0m
+(node:6908) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[0mPUT /api/admin/notifications/6aa12b2321f17d4d9d7e642d/read [32m200[0m 20.338 ms - 535[0m
+[0mGET /api/admin/notifications?limit=1 [32m200[0m 11.872 ms - 625[0m
+(node:6908) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+[0mPUT /api/admin/notifications/6aa1294121f17d4d9d7e642b/read [32m200[0m 8.733 ms - 552[0m
+[0mGET /api/admin/notifications?limit=1 [32m200[0m 11.853 ms - 625[0m
+(node:6908) [MONGOOSE] Warning: mongoose: the `new` option for `findOneAndUpdate()` and `findOneAndReplace()` is deprecated. Use `returnDocument: 'after'` instead.
+[0mPUT /api/admin/notifications/6aa126cb7965172f9e55b91b/read [32m200[0m 10.175 ms - 539[0m
+[0mGET /api/admin/notifications?limit=1 [32m200[0m 8.431 ms - 625[0m
+[0mPOST /api/auth/logout [32m200[0m 8.850 ms - 39[0m
+[0mPOST /api/auth/login [32m200[0m 736.487 ms - 878[0m
+[0mGET /api/customer/categories [36m304[0m 34.029 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [32m200[0m 38.847 ms - 12105[0m
+[0mGET /api/customer/cart [32m200[0m 66.092 ms - 283[0m
+[0mGET /api/customer/wishlist [36m304[0m 79.532 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 47.914 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [36m304[0m 41.471 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 29.890 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 35.362 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 14.741 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 14.347 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 11.909 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 12.218 ms - -[0m
+[0mGET /api/customer/messages [36m304[0m 21.381 ms - -[0m
+[Socket] Connected: oS-RFIcuZCuYq2pLAAAC
+[Socket] User 6a9ad979ca46aceede2cca52 registered → oS-RFIcuZCuYq2pLAAAC
+[0mGET /api/customer/messages [36m304[0m 14.357 ms - -[0m
+[Socket] Disconnected: oS-RFIcuZCuYq2pLAAAC
+[0mGET /api/customer/categories [36m304[0m 20.193 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [36m304[0m 29.935 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 43.056 ms - -[0m
+[0mGET /api/customer/categories [36m304[0m 33.149 ms - -[0m
+[0mGET /api/customer/products?sort=newest&page=1&limit=12 [36m304[0m 28.846 ms - -[0m
+[0mGET /api/customer/wishlist [36m304[0m 39.392 ms - -[0m
+[0mGET /api/customer/orders?limit=50 [32m200[0m 21.562 ms - 21882[0m
+[0mGET /api/customer/orders?limit=50 [36m304[0m 16.349 ms - -[0m
+[0mPOST /api/auth/login [32m200[0m 756.023 ms - 1080[0m
+[0mGET /api/auth/me [32m200[0m 23.572 ms - 854[0m
+[0mGET /api/delivery/orders/available?page=1&limit=1 [32m200[0m 26.625 ms - 80[0m
+[0mGET /api/delivery/returns/active [32m200[0m 26.734 ms - 26[0m
+[0mGET /api/auth/me [36m304[0m 19.583 ms - -[0m
+[0mGET /api/delivery/orders/available?page=1&limit=1 [36m304[0m 20.725 ms - -[0m
+[0mGET /api/delivery/returns/active [36m304[0m 21.738 ms - -[0m
+[0mGET /api/delivery/stats [32m200[0m 23.390 ms - 127[0m
+[0mGET /api/delivery/orders/active [32m200[0m 24.344 ms - 26[0m
+[0mGET /api/delivery/orders/available?page=1&limit=4 [32m200[0m 26.557 ms - 80[0m
+[0mGET /api/delivery/stats [36m304[0m 16.919 ms - -[0m
+[0mGET /api/delivery/orders/active [36m304[0m 20.431 ms - -[0m
+[0mGET /api/delivery/orders/available?page=1&limit=4 [36m304[0m 19.025 ms - -[0m
+[0mGET /api/delivery/orders/assigned [32m200[0m 11.201 ms - 26[0m
+[0mGET /api/delivery/orders/assigned [36m304[0m 11.363 ms - -[0m
+[0mGET /api/delivery/orders/active [36m304[0m 10.600 ms - -[0m
+[0mGET /api/delivery/orders/active [36m304[0m 9.334 ms - -[0m
+[0mGET /api/delivery/orders/available?page=1&limit=20 [32m200[0m 13.385 ms - 81[0m
+[0mGET /api/delivery/orders/available?page=1&limit=20 [36m304[0m 8.117 ms - -[0m
+[0mGET /api/delivery/orders/active [36m304[0m 10.881 ms - -[0m
+[0mGET /api/delivery/orders/active [36m304[0m 9.839 ms - -[0m
+[0mGET /api/delivery/orders/available?page=1&limit=20 [36m304[0m 12.032 ms - -[0m
+[0mGET /api/delivery/orders/available?page=1&limit=20 [36m304[0m 9.161 ms - -[0m
+[0mGET /api/delivery/stats [36m304[0m 22.337 ms - -[0m
+[0mGET /api/delivery/orders/active [36m304[0m 28.717 ms - -[0m
+[0mGET /api/delivery/orders/available?page=1&limit=4 [36m304[0m 32.143 ms - -[0m
+[0mGET /api/delivery/stats [36m304[0m 18.291 ms - -[0m
+[0mGET /api/delivery/orders/active [36m304[0m 18.350 ms - -[0m
+[0mGET /api/delivery/orders/available?page=1&limit=4 [36m304[0m 15.653 ms - -[0m
+[0mGET /api/delivery/returns/available?limit=20 [32m200[0m 17.144 ms - 81[0m
+[0mGET /api/delivery/returns/active [36m304[0m 17.852 ms - -[0m
+[0mGET /api/delivery/returns/available?limit=20 [36m304[0m 10.794 ms - -[0m
+[0mGET /api/delivery/returns/active [36m304[0m 14.439 ms - -[0m
+[0mGET /api/delivery/orders/history?page=1&limit=20 [32m200[0m 14.753 ms - 81[0m
+[0mGET /api/delivery/orders/history?page=1&limit=20 [36m304[0m 9.864 ms - -[0m
+[0mGET /api/delivery/stats [36m304[0m 22.860 ms - -[0m
+[0mGET /api/delivery/orders/active [36m304[0m 23.684 ms - -[0m
+[0mGET /api/delivery/orders/available?page=1&limit=4 [36m304[0m 30.253 ms - -[0m
+[0mGET /api/delivery/stats [36m304[0m 15.242 ms - -[0m
+[0mGET /api/delivery/orders/active [36m304[0m 18.483 ms - -[0m
+[0mGET /api/delivery/orders/available?page=1&limit=4 [36m304[0m 10.614 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 16.407 ms - -[0m
+[0mPOST /api/auth/logout [32m200[0m 10.721 ms - 39[0m
+[0mGET /api/customer/cart [36m304[0m 16.959 ms - -[0m
+[0mGET /api/customer/orders?limit=50 [36m304[0m 23.883 ms - -[0m
+[0mGET /api/customer/cart [36m304[0m 21.838 ms - -[0m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module 'D:\Projects\ShopSphere\Backend\sockets\tickets.js' imported from D:\Projects\ShopSphere\Backend\server.js
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:866:10)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:719:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:736:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:765:52)
+    at #resolve (node:internal/modules/esm/loader:701:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:621:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:160:33)
+    at ModuleJob.link (node:internal/modules/esm/module_job:245:17) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///D:/Projects/ShopSphere/Backend/sockets/tickets.js'
+}
+
+Node.js v24.13.1
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+node:internal/modules/esm/resolve:275
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module 'D:\Projects\ShopSphere\Backend\sockets\tickets.js' imported from D:\Projects\ShopSphere\Backend\server.js
+    at finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    at moduleResolve (node:internal/modules/esm/resolve:866:10)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:719:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:736:38)
+    at ModuleLoader.resolveSync (node:internal/modules/esm/loader:765:52)
+    at #resolve (node:internal/modules/esm/loader:701:17)
+    at ModuleLoader.getOrCreateModuleJob (node:internal/modules/esm/loader:621:35)
+    at ModuleJob.syncLink (node:internal/modules/esm/module_job:160:33)
+    at ModuleJob.link (node:internal/modules/esm/module_job:245:17) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///D:/Projects/ShopSphere/Backend/sockets/tickets.js'
+}
+
+Node.js v24.13.1
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `node server.js`[39m
+MongoDB Connected
+ Server running on port 3000
+[0mGET /api/customer/cart [33m401[0m 14.585 ms - 54[0m
