@@ -1,8 +1,11 @@
 import { Router } from "express";
+import Product from "../../models/Product.js";
 import Order from "../../models/Order.js";
 import Variant from "../../models/Variant.js";
 import Notification from "../../models/Notification.js";
 import { assignRandomDeliveryAgent } from "../../services/deliveryAssignment.js";
+import { syncProductToSheet } from "../../services/sheetSync.js";
+import { syncOrderToSheet } from "../../services/sheetOrders.js";
 
 const router = Router();
 
@@ -40,12 +43,39 @@ router.put("/:orderId/cancel", async (req, res) => {
     await order.save();
 
     for (const item of order.items) {
-      if (item.variant) {
-        await Variant.findByIdAndUpdate(item.variant, { $inc: { stock: item.quantity } });
-      } else if (item.product) {
-        await Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity, "stats.totalSold": -item.quantity } });
-      }
-    }
+  if (item.variant) {
+
+    // Restore variant stock
+    const updatedVariant = await Variant.findByIdAndUpdate(
+      item.variant,
+      { $inc: { stock: item.quantity } },
+      { new: true }
+    );
+
+    // Mirror the restored variant stock into this seller's own sheet
+    if (updatedVariant) await syncProductToSheet(item.product);
+
+  } else if (item.product) {
+
+    // Restore normal product stock
+    const updatedProduct = await Product.findByIdAndUpdate(
+      item.product,
+      {
+        $inc: {
+          stock: item.quantity,
+          "stats.totalSold": -item.quantity
+        }
+      },
+      { new: true }
+    );
+    
+    // Mirror the restored stock into this seller's own sheet
+    if (updatedProduct) await syncProductToSheet(updatedProduct);
+  }
+}
+
+    // Keep this seller's Orders tab showing the cancellation
+    await syncOrderToSheet(order);
 
     await Notification.create({ recipient: order.customer, type: "order_cancelled", title: "Order Cancelled", message: `Order ${order.orderNumber} cancelled by seller. ${reason}`, data: { entityType: "order", entityId: order._id } });
     res.json({ success: true, message: "Order cancelled", data: order });
@@ -88,6 +118,9 @@ router.put("/:orderId/status", async (req, res) => {
     if (status === "cancelled") { order.cancellationReason = note; order.cancelledBy = req.user._id; }
 
     await order.save();
+
+    // Phase 9 — the Orders tab's orderStatus column follows the state machine
+    await syncOrderToSheet(order);
 
     const notifMap = { confirmed: "order_confirmed", shipped: "order_shipped", delivered: "order_delivered", cancelled: "order_cancelled" };
     if (notifMap[status]) {

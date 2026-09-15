@@ -2,11 +2,14 @@ import { Router } from "express";
 import ReturnRequest from "../../models/ReturnRequest.js";
 import Order from "../../models/Order.js";
 import Variant from "../../models/Variant.js";
+import Product from "../../models/Product.js";
 import Wallet from "../../models/Wallet.js";
 import WalletTransaction from "../../models/WalletTransaction.js";
 import Seller from "../../models/Seller.js";
 import Notification from "../../models/Notification.js";
 import { assignRandomDeliveryAgentForReturn } from "../../services/returnDeliveryAssignment.js";
+import { syncProductToSheet } from "../../services/sheetSync.js";
+import { syncOrderToSheet } from "../../services/sheetOrders.js";
 
 const router = Router();
 
@@ -55,6 +58,9 @@ router.put("/:returnId/approve", async (req, res) => {
     await returnReq.save();
     if (order) await order.save();
 
+    // Order moved to return_approved — keep the seller's Orders tab in step
+    if (order) await syncOrderToSheet(order);
+
     await Notification.create({
       recipient: returnReq.customer,
       type: "return_approved",
@@ -93,6 +99,9 @@ router.put("/:returnId/reject", async (req, res) => {
       order.status = "delivered";
       order.statusHistory.push({ status: "delivered", note: `Return rejected by seller. ${note}`.trim(), changedBy: req.user._id });
       await order.save();
+
+      // Return withdrawn → back to delivered in the seller's Orders tab
+      await syncOrderToSheet(order);
     }
 
     await Notification.create({ recipient: returnReq.customer, type: "return_rejected", title: "Return Rejected", message: `Your return was rejected. ${note}`.trim(), data: { entityType: "return", entityId: returnReq._id } });
@@ -115,12 +124,23 @@ router.put("/:returnId/receive", async (req, res) => {
     await returnReq.save();
 
     // Restore stock for items (stock was deducted at checkout)
+    const restoredProducts = new Set();
+
     for (const item of returnReq.items) {
       if (item.variant) {
         await Variant.findByIdAndUpdate(item.variant, { $inc: { stock: item.quantity } });
       } else if (item.product) {
         await Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity, "stats.totalSold": -item.quantity } });
       }
+
+      if (item.product) restoredProducts.add(String(item.product));
+    }
+
+    // Mirror the returned stock back into each product's sheet. syncProductToSheet
+    // re-reads the product + variants and records the reconciliation baseline, so
+    // the next import doesn't mistake the restored stock for a seller edit.
+    for (const productId of restoredProducts) {
+      await syncProductToSheet(productId);
     }
 
     // ─── Refund the customer ─────────────────────────────────────────────
@@ -136,6 +156,9 @@ router.put("/:returnId/receive", async (req, res) => {
       order.payment.status = "refunded";
       order.payment.refundedAt = new Date();
       await order.save();
+
+      // orderStatus (return_received) + paymentStatus (refunded) in the Orders tab
+      await syncOrderToSheet(order);
 
       // Debit the seller wallet and record the refund transaction
       if (sellerDoc && order.total > 0) {

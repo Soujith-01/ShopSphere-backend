@@ -8,6 +8,7 @@ import WalletTransaction from "../../models/WalletTransaction.js";
 import Notification from "../../models/Notification.js";
 import ReturnRequest from "../../models/ReturnRequest.js";
 import { protect, authorize } from "../../middlewares/authMiddleware.js";
+import { syncOrderToSheet } from "../../services/sheetOrders.js";
 
 const PLATFORM_COMMISSION_PERCENT = 10;
 
@@ -110,6 +111,9 @@ router.put("/orders/:orderId/start", async (req, res) => {
     order.statusHistory.push({ status: "out_for_delivery", note: "Delivery started by assigned partner", changedBy: req.user._id });
     await order.save();
 
+    // Keep the seller's Orders tab (orderStatus column) in step
+    await syncOrderToSheet(order);
+
     await Notification.create({ recipient: order.customer, type: "order_shipped", title: "Out for Delivery", message: `Order ${order.orderNumber} is out for delivery`, data: { entityType: "order", entityId: order._id } });
     await Notification.create({ recipient: order.seller, type: "order_shipped", title: "Order Out for Delivery", message: `Order ${order.orderNumber} has been picked up by the delivery partner and is on its way to the customer.`, data: { entityType: "order", entityId: order._id } });
     res.json({ success: true, message: "Delivery started", data: order });
@@ -130,6 +134,9 @@ router.put("/orders/:orderId/accept", async (req, res) => {
     order.statusHistory.push({ status: "out_for_delivery", note: "Assigned to delivery partner", changedBy: req.user._id });
     await order.save();
 
+    // Keep the seller's Orders tab (orderStatus column) in step
+    await syncOrderToSheet(order);
+
     await Notification.create({ recipient: order.customer, type: "order_shipped", title: "Out for Delivery", message: `Order ${order.orderNumber} is out for delivery`, data: { entityType: "order", entityId: order._id } });
     await Notification.create({ recipient: order.seller, type: "order_shipped", title: "Order Out for Delivery", message: `Order ${order.orderNumber} has been picked up by a delivery partner and is on its way to the customer.`, data: { entityType: "order", entityId: order._id } });
     res.json({ success: true, message: "Order accepted", data: order });
@@ -148,6 +155,9 @@ router.put("/orders/:orderId/deliver", async (req, res) => {
     if (!order.payment.paidAt) order.payment.paidAt = new Date();
     order.statusHistory.push({ status: "delivered", note: req.body.note || "Delivered successfully", changedBy: req.user._id });
     await order.save();
+
+    // Keep the seller's Orders tab (orderStatus + paymentStatus) in step
+    await syncOrderToSheet(order);
 
     // Update product stats (totalSold, totalRevenue) for each item
     for (const item of order.items) {
@@ -308,6 +318,9 @@ router.put("/returns/:returnId/pickup", async (req, res) => {
           changedBy: req.user._id,
         });
         await order.save();
+
+        // Keep the seller's Orders tab (orderStatus column) in step
+        await syncOrderToSheet(order);
       }
     }
 

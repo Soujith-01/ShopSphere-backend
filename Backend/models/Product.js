@@ -1,5 +1,16 @@
 import mongoose from "mongoose";
 
+// Stock/price the app last reconciled with the seller's Google Sheet, keyed by
+// variant id. Lets the importer tell a deliberate sheet edit apart from a stale
+// row that a purchase has already overtaken (see services/sheetConflicts.js).
+const variantBaselineSchema = new mongoose.Schema(
+  {
+    stock: { type: Number, default: null },
+    price: { type: Number, default: null },
+  },
+  { _id: false }
+);
+
 const productSchema = new mongoose.Schema(
   {
     // Ownership
@@ -49,7 +60,9 @@ const productSchema = new mongoose.Schema(
     images: [
       {
         url: { type: String, required: true },
-        publicId: { type: String, required: true },
+        // Empty for images that aren't Cloudinary uploads (e.g. a URL the
+        // seller typed into their Google Sheet).
+        publicId: { type: String, default: "" },
         alt: { type: String, default: "" },
         sortOrder: { type: Number, default: 0 },
       },
@@ -105,6 +118,16 @@ const productSchema = new mongoose.Schema(
       totalReviews: { type: Number, default: 0 },
       totalViews: { type: Number, default: 0 },
       totalWishlisted: { type: Number, default: 0 },
+    },
+
+    // Google Sheets reconciliation snapshot (see services/sheetConflicts.js).
+    // `null` means "never reconciled", which keeps earlier products behaving
+    // exactly as before — the sheet stays authoritative until the first sync.
+    sheetSync: {
+      stock: { type: Number, default: null },
+      price: { type: Number, default: null },
+      variants: { type: Map, of: variantBaselineSchema, default: undefined },
+      syncedAt: { type: Date, default: null },
     },
 
     // Status

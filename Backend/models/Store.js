@@ -56,6 +56,13 @@ const storeSchema = new mongoose.Schema(
       count: { type: Number, default: 0 },
     },
 
+    googleSheet: {
+      spreadsheetId: { type: String, default: "" },
+      spreadsheetUrl: { type: String, default: "" },
+      // Seller email the sheet was shared with (edit access) — keeps the share
+      // idempotent and lets stores created earlier be backfilled.
+      sharedWith: { type: String, default: "" },
+    },
 
     isActive: { type: Boolean, default: true },
     isFeatured: { type: Boolean, default: false },

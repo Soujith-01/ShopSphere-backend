@@ -167,6 +167,18 @@ const orderSchema = new mongoose.Schema(
       ref: "ParentOrder",
       default: null,
     },
+
+    // Google Sheets mirror bookkeeping ONLY — never the business status above.
+    // `pending` = not written yet, `synced` = this sub-order's rows are in the
+    // seller's Orders tab, `failed` = Sheets was unreachable (the order itself
+    // is unaffected; the 5-minute job or a "Sync now" retries the write).
+    googleSheetSyncStatus: {
+      type: String,
+      enum: ["pending", "synced", "failed"],
+      default: "pending",
+    },
+    googleSheetSyncedAt: { type: Date, default: null },
+    googleSheetSyncError: { type: String, default: "" },
   },
   { timestamps: true }
 );

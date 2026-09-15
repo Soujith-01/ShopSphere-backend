@@ -7,6 +7,7 @@ import Order from "../../models/Order.js";
 import Product from "../../models/Product.js";
 import Seller from "../../models/Seller.js";
 import Notification from "../../models/Notification.js";
+import { syncOrderToSheet } from "../../services/sheetOrders.js";
 
 const router = Router();
 router.use(protect);
@@ -98,6 +99,9 @@ router.put(
       shipOrder.status = "return_shipped";
       shipOrder.statusHistory.push({ status: "return_shipped", note: trackingNumber ? `Return shipped by customer. Tracking: ${trackingNumber}` : "Return shipped by customer", changedBy: req.user._id });
       await shipOrder.save();
+
+      // Return in transit → the seller's Orders tab follows the state machine
+      await syncOrderToSheet(shipOrder);
     }
 
     // Notify the seller (Seller doc -> owning User account for the notification recipient)
@@ -143,6 +147,9 @@ router.delete("/:returnId", async (req, res) => {
     order.status = "delivered";
     order.statusHistory.push({ status: "delivered", note: "Return request cancelled by customer", changedBy: req.user._id });
     await order.save();
+
+    // Return withdrawn → back to delivered in the seller's Orders tab
+    await syncOrderToSheet(order);
   }
 
   res.json({ success: true, message: "Return request cancelled", data: returnReq });
@@ -266,6 +273,9 @@ router.post(
     order.status = "return_requested";
     order.statusHistory.push({ status: "return_requested", note: `Return requested (${reason})`, changedBy: req.user._id });
     await order.save();
+
+    // The seller's Orders tab shows the return right away
+    await syncOrderToSheet(order);
 
     // Notify the seller. Resolve to owning User id safely.
     const sellerDoc = await Seller.findById(targetSellerId);

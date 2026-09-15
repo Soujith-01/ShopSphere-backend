@@ -23,12 +23,16 @@ import supportNotificationRoutes from './APIS/support/notifications.js'
 import aiRoutes from './APIS/ai/index.js'
 import setupMessageSocket from './sockets/messages.js'
 import setupTicketSocket from './sockets/tickets.js'
+import googleSheetsRoutes from "./APIS/googleSheets.js";
+import { startSheetSync } from "./services/sheetSync.js";
+
 
 const app = express()
 const server = http.createServer(app)
 const PORT = parseInt(process.env.PORT, 10) || 3000
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
+app.use(express.json());
 
 // Parse allowed origins from env
 const parseOrigins = (raw) =>
@@ -40,6 +44,9 @@ const origins = parseOrigins(process.env.CLIENT_URL)
 const io = new SocketServer(server, {
 	cors: { origin: origins, methods: ['GET', 'POST'], credentials: true },
 })
+
+app.use("/api/google", googleSheetsRoutes);
+
 
 const connectedUsers = new Map()
 
@@ -135,6 +142,8 @@ const connectDB = async () => {
 
 const startServer = async () => {
 	await connectDB()
+	// Pull new rows from every seller's Google Sheet into MongoDB every 5 min
+	startSheetSync()
 	server.listen(PORT, () => {
 		console.log(` Server running on port ${PORT}`)
 	})

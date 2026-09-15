@@ -1,94 +1,77 @@
 import { Router } from "express";
-import multer from "multer";
-import cloudinary, { isCloudinaryConfigured } from "../../config/cloudinary.js";
+import {
+  isCloudinaryConfigured,
+  uploadImageBuffer,
+} from "../../services/cloudinaryService.js";
+import {
+  imageUploadErrors,
+  uploadAnyImages,
+  uploadManyImages,
+} from "../../middlewares/imageUpload.js";
 
+/**
+ * Generic seller image uploads.
+ *
+ * These routes are kept for backwards compatibility (store logo/banner and any
+ * older client). New product photos go to POST /api/seller/products/upload-image,
+ * which validates JPG/JPEG/PNG/WEBP and has the same response contract.
+ *
+ * Both routers are mounted behind `protect` + `requireSeller`, so only an
+ * authenticated, verified seller can upload — and the file is streamed straight
+ * to Cloudinary, never through MongoDB.
+ */
 const router = Router();
 
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 8 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype && file.mimetype.startsWith("image/")) cb(null, true);
-    else cb(new Error("Only image files are allowed"));
-  },
-});
+const NOT_CONFIGURED_MESSAGE =
+  "Image uploads are not configured yet — add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET to Backend/.env";
 
-// Helper to stream a memory buffer to Cloudinary
-const uploadBufferToCloudinary = (buffer) =>
-  new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      { folder: "shopsphere/products" },
-      (error, result) => (error ? reject(error) : resolve(result))
-    );
-    stream.end(buffer);
-  });
+const uploadAll = async (files) =>
+  Promise.all(
+    files.map(async (file) => {
+      const result = await uploadImageBuffer(file.buffer);
+      return { url: result.url, publicId: result.publicId };
+    })
+  );
 
-// Upload one or multiple product images to Cloudinary.
-// Supports:
-// - single file with fieldname "image" -> returns { success: true, data: { url, publicId } }
-// - multiple files with fieldname "images" or multiple files -> returns { success: true, data: [{ url, publicId }, ...] }
-router.post("/", upload.any(), async (req, res, next) => {
+// Upload one or many images.
+// - a single file in the "image" field  → { success: true, data: { url, publicId } }
+// - anything else                        → { success: true, data: [{ url, publicId }, …] }
+router.post("/", uploadAnyImages, imageUploadErrors, async (req, res, next) => {
   try {
     const files = req.files || (req.file ? [req.file] : []);
-    if (!files || files.length === 0) {
+
+    if (files.length === 0) {
       return res.status(400).json({ success: false, message: "No image file uploaded" });
     }
     if (!isCloudinaryConfigured) {
-      return res.status(503).json({
-        success: false,
-        message: "Image uploads are not configured yet — add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET to Backend/.env",
-      });
+      return res.status(503).json({ success: false, message: NOT_CONFIGURED_MESSAGE });
     }
 
-    const uploaded = await Promise.all(
-      files.map(async (f) => {
-        const result = await uploadBufferToCloudinary(f.buffer);
-        return { url: result.secure_url, publicId: result.public_id };
-      })
-    );
+    const uploaded = await uploadAll(files);
 
-    // If caller specifically sent single "image", return single object for backwards compatibility
-    if (files.length === 1 && files[0].fieldname === "image") {
-      return res.status(201).json({
-        success: true,
-        data: uploaded[0],
-      });
+    if (uploaded.length === 1 && files[0].fieldname === "image") {
+      return res.status(201).json({ success: true, data: uploaded[0] });
     }
 
-    res.status(201).json({
-      success: true,
-      data: uploaded,
-    });
+    res.status(201).json({ success: true, data: uploaded });
   } catch (err) {
     next(err);
   }
 });
 
-// Dedicated batch upload endpoint for multiple images
-router.post("/multiple", upload.array("images", 10), async (req, res, next) => {
+// Batch upload — the "images" field, up to MAX_IMAGES_PER_PRODUCT files.
+router.post("/multiple", uploadManyImages, imageUploadErrors, async (req, res, next) => {
   try {
     const files = req.files || [];
-    if (!files || files.length === 0) {
+
+    if (files.length === 0) {
       return res.status(400).json({ success: false, message: "No image files uploaded" });
     }
     if (!isCloudinaryConfigured) {
-      return res.status(503).json({
-        success: false,
-        message: "Image uploads are not configured yet — add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY and CLOUDINARY_API_SECRET to Backend/.env",
-      });
+      return res.status(503).json({ success: false, message: NOT_CONFIGURED_MESSAGE });
     }
 
-    const uploaded = await Promise.all(
-      files.map(async (f) => {
-        const result = await uploadBufferToCloudinary(f.buffer);
-        return { url: result.secure_url, publicId: result.public_id };
-      })
-    );
-
-    res.status(201).json({
-      success: true,
-      data: uploaded,
-    });
+    res.status(201).json({ success: true, data: await uploadAll(files) });
   } catch (err) {
     next(err);
   }

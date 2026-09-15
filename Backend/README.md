@@ -37,7 +37,7 @@ Backend/
 └── APIS/                  # 27 inline route files (handler logic directly in routes)
     ├── auth/auth.js       # 8 endpoints
     ├── customer/          # 10 modules, 43 endpoints
-    ├── seller/            # 5 modules, 27 endpoints
+    ├── seller/            # 12 modules, 47 endpoints
     ├── admin/             # 7 modules, 31 endpoints
     ├── delivery/routes.js # 8 endpoints
     └── support/routes.js  # 7 endpoints
@@ -162,8 +162,8 @@ router.get('/', async (req, res) => {
 | Get ticket detail with threaded messages | GET | `/tickets/:ticketId` |
 | Reply to a ticket | POST | `/tickets/:ticketId/messages` |
 
-### Seller (`/api/seller`) — 27 endpoints
-All routes require auth + verified seller role.
+### Seller (`/api/seller`) — 47 endpoints
+All routes require auth + verified seller role (the table below lists the main ones).
 
 | Comment | Method | Endpoint |
 |---------|--------|----------|
@@ -178,9 +178,17 @@ All routes require auth + verified seller role.
 | Update a variant | PUT | `/products/:pid/variants/:vid` |
 | Delete a variant | DELETE | `/products/:pid/variants/:vid` |
 | Update variant stock and threshold | PUT | `/products/:pid/variants/:vid/stock` |
+| Quick restock / set product stock | PUT | `/products/:id/stock` |
+| Upload one product photo (JPG/JPEG/PNG/WEBP → Cloudinary) | POST | `/products/upload-image` |
+| Delete uploaded photos that were never saved to a product | POST | `/products/discard-images` |
+| Import new rows and sheet edits from the seller's own Google Sheet | POST | `/products/import-from-sheet` |
 | Get seller's store details | GET | `/store` |
 | Create a new store | POST | `/store` |
 | Update store details | PUT | `/store` |
+| Get the store's Google Sheet link and the tabs it contains | GET | `/sheets` |
+| Sync now — import sheet edits, then refresh the Orders + Inventory tabs | POST | `/sheets/sync` |
+| Rebuild the Inventory tab from MongoDB (created on first use) | POST | `/sheets/inventory` |
+| Re-share the store's sheet with the seller's current email | POST | `/store/sheet/reshare` |
 | List all orders for this seller | GET | `/orders` |
 | Cancel an order | PUT | `/orders/:id/cancel` |
 | Get single order detail | GET | `/orders/:id` |
@@ -286,6 +294,8 @@ All routes require auth + support or admin role.
 - **Audit Logging** — all admin actions tracked with auto-deletion after 90 days
 - **Geospatial Support** — 2dsphere indexes for delivery partner & store locations
 - **Gemini AI** — AI product descriptions, semantic vector search (Atlas), user-behavior recommendations with weighted events (`services/ai/*`)
+- **Google Sheets Sync** — every store owns a spreadsheet with `Products` (two-way), `Orders` and `Inventory` tabs; purchases always win over a stale sheet row. See **[`docs/GOOGLE_SHEETS_SYNC.md`](docs/GOOGLE_SHEETS_SYNC.md)**
+- **Product Photo Uploads** — sellers add photos from the phone camera or gallery (or a desktop file picker); images are compressed in the browser, stored on Cloudinary and referenced from MongoDB by `url`/`publicId`. See **[`docs/PRODUCT_IMAGE_UPLOADS.md`](docs/PRODUCT_IMAGE_UPLOADS.md)**
 
 ---
 
@@ -339,6 +349,12 @@ GEMINI_TEXT_MODEL=gemini-2.0-flash
 GEMINI_EMBEDDING_MODEL=text-embedding-004
 GEMINI_EMBEDDING_DIMENSIONS=768   # must equal the Atlas vector index dimension
 ATLAS_VECTOR_INDEX_NAME=product_embedding_index
+# Google Sheets sync (optional — every store gets its own spreadsheet)
+GOOGLE_SPREADSHEET_ID=fallback-shared-sheet-id   # stores created before personal sheets
+GOOGLE_REDIRECT_URI=                             # OAuth callback used to install the Sheets token
+SHEET_SYNC_ENABLED=true                          # false disables the background job
+SHEET_SYNC_INTERVAL_MS=300000                    # 5 min
+SHEET_SYNC_RUN_ON_START=true                     # one cycle at boot
 ```
 > JWT signing/verification falls back to `JWT_SECRET` when the dedicated access/refresh secrets are absent — one variable is enough to run.
 

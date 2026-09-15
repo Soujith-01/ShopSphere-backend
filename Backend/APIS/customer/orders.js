@@ -10,6 +10,8 @@ import Notification from "../../models/Notification.js";
 import { generateOrderNumber } from "../../utils/helpers.js";
 import { protect } from "../../middlewares/authMiddleware.js";
 import UserEvent from "../../models/UserEvent.js";
+import { syncProductToSheet } from "../../services/sheetSync.js";
+import { syncOrderToSheet, syncOrdersToSheet } from "../../services/sheetOrders.js";
 
 const router = Router();
 router.use(protect);
@@ -142,6 +144,8 @@ router.post("/checkout", async (req, res) => {
               : `"${item.productName}" is now out of stock.`,
           });
         }
+        // Mirror the variant's new stock into this seller's own sheet
+        await syncProductToSheet(item.product);
         appliedDeductions.push({ type: "variant", id: item.variant, quantity: item.quantity });
       } else {
         const updatedProduct = await Product.findOneAndUpdate(
@@ -163,6 +167,8 @@ router.post("/checkout", async (req, res) => {
               : `"${item.productName}" is now out of stock.`,
           });
         }
+        // Mirror the new stock into this seller's own sheet
+        await syncProductToSheet(updatedProduct);
         appliedDeductions.push({ type: "product", id: item.product, quantity: item.quantity });
       }
     }
@@ -208,6 +214,11 @@ router.post("/checkout", async (req, res) => {
     for (const sub of subOrders) {
       await Notification.create({ recipient: sub.seller, type: "order_placed", title: "New Order Received", message: `Order ${sub.orderNumber} has been placed`, data: { entityType: "order", entityId: sub._id } });
     }
+
+    // Phase 9 — mirror the split order into each seller's own Orders tab
+    // (Seller A's items into Sheet A, Seller B's into Sheet B). Best-effort: the
+    // service logs and swallows Sheets failures, so checkout never fails on it.
+    await syncOrdersToSheet(subOrders);
 
     // Log PURCHASE events for AI recommendations (fire-and-forget — never blocks checkout)
     for (const item of cart.items) {
@@ -267,12 +278,39 @@ router.put("/:orderId/cancel", async (req, res) => {
   await order.save();
 
   for (const item of order.items) {
-    if (item.variant) {
-      await Variant.findByIdAndUpdate(item.variant, { $inc: { stock: item.quantity } });
-    } else if (item.product) {
-      await Product.findByIdAndUpdate(item.product, { $inc: { stock: item.quantity, "stats.totalSold": -item.quantity } });
-    }
+  if (item.variant) {
+
+    // Restore variant stock
+    const updatedVariant = await Variant.findByIdAndUpdate(
+      item.variant,
+      { $inc: { stock: item.quantity } },
+      { new: true }
+    );
+
+    // Mirror the restored variant stock into this seller's own sheet
+    if (updatedVariant) await syncProductToSheet(item.product);
+
+  } else if (item.product) {
+
+    // Restore normal product stock
+    const updatedProduct = await Product.findByIdAndUpdate(
+      item.product,
+      {
+        $inc: {
+          stock: item.quantity,
+          "stats.totalSold": -item.quantity
+        }
+      },
+      { new: true }
+    );
+
+    // Mirror the restored stock into this seller's own sheet
+    if (updatedProduct) await syncProductToSheet(updatedProduct);
   }
+}
+
+  // Keep the seller's Orders tab showing the cancellation (and the restored stock)
+  await syncOrderToSheet(order);
 
   await Notification.create({ recipient: order.seller, type: "order_cancelled", title: "Order Cancelled", message: `Order ${order.orderNumber} has been cancelled`, data: { entityType: "order", entityId: order._id } });
 
