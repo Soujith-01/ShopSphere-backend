@@ -25,6 +25,7 @@ import setupMessageSocket from './sockets/messages.js'
 import setupTicketSocket from './sockets/tickets.js'
 import googleSheetsRoutes from "./APIS/googleSheets.js";
 import { startSheetSync } from "./services/sheetSync.js";
+import { connectDB } from "./config/db.js";
 
 
 const app = express()
@@ -171,27 +172,22 @@ process.on('unhandledRejection', (reason) => {
 	console.error('[Unhandled Rejection]', reason)
 })
 
-// Connect to MongoDB then start listening
-const connectDB = async () => {
-	const uri = process.env.MONGODB_URI || process.env.DB_URL
-	if (!uri) {
-		console.warn('[DB] No MongoDB URI found in env. Skipping connection.')
+const startServer = async () => {
+	const dbConnection = await connectDB()
+	if (!dbConnection) {
+		console.error('[Startup] MongoDB connection failed. Server startup aborted.')
+		if (process.env.NODE_ENV !== 'test') {
+			process.exit(1)
+		}
 		return
 	}
-	try {
-		await mongoose.connect(uri)
-		console.log('MongoDB Connected')
-	} catch (err) {
-		console.error(`[MongoDB] Connection failed: ${err.message}`)
-	}
-}
 
-const startServer = async () => {
-	await connectDB()
 	// Pull new rows from every seller's Google Sheet into MongoDB every 5 min
 	startSheetSync()
+	console.log('SheetSync started')
+
 	server.listen(PORT, () => {
-		console.log(` Server running on port ${PORT}`)
+		console.log(`Server running on port ${PORT}`)
 	})
 }
 
