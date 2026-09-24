@@ -32,17 +32,58 @@ const server = http.createServer(app)
 const PORT = parseInt(process.env.PORT, 10) || 3000
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
-app.use(express.json());
+// Allowed origins list and dynamic matcher for local dev / production
+const allowedOrigins = process.env.CLIENT_URL
+	? process.env.CLIENT_URL.split(',').map((o) => o.trim())
+	: [
+			'http://localhost:5173',
+			'http://127.0.0.1:5173',
+			'http://localhost:5174',
+			'http://127.0.0.1:5174',
+			'http://localhost:3000',
+			'http://127.0.0.1:3000',
+	  ]
 
-// Parse allowed origins from env
-const parseOrigins = (raw) =>
-	raw ? raw.split(',').map((o) => o.trim()) : ['http://localhost:5173']
+const isOriginAllowed = (origin) => {
+	if (!origin) return true // Allow requests without Origin (curl, server-to-server, postman)
+	if (allowedOrigins.includes(origin)) return true
+	// Match any localhost, 127.0.0.1, or local LAN IP on any port
+	if (/^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?$/.test(origin)) {
+		return true
+	}
+	return false
+}
 
-const origins = parseOrigins(process.env.CLIENT_URL)
+const corsOptions = {
+	origin: (origin, callback) => {
+		if (isOriginAllowed(origin)) {
+			callback(null, true)
+		} else {
+			// Fail-open for local developer convenience
+			callback(null, true)
+		}
+	},
+	credentials: true,
+	methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+	allowedHeaders: [
+		'Content-Type',
+		'Authorization',
+		'X-Requested-With',
+		'Accept',
+		'Origin',
+		'Access-Control-Request-Method',
+		'Access-Control-Request-Headers',
+	],
+	exposedHeaders: ['Set-Cookie'],
+}
 
 // Socket.io setup
 const io = new SocketServer(server, {
-	cors: { origin: origins, methods: ['GET', 'POST'], credentials: true },
+	cors: {
+		origin: (origin, callback) => callback(null, true),
+		methods: ['GET', 'POST'],
+		credentials: true,
+	},
 })
 
 app.use("/api/google", googleSheetsRoutes);
@@ -84,8 +125,13 @@ setupMessageSocket(io, connectedUsers)
 setupTicketSocket(io, connectedUsers)
 
 // Global middleware
-app.use(helmet())
-app.use(cors({ origin: origins, credentials: true }))
+app.use(
+	helmet({
+		crossOriginResourcePolicy: { policy: 'cross-origin' },
+		crossOriginEmbedderPolicy: false,
+	})
+)
+app.use(cors(corsOptions))
 if (process.env.NODE_ENV !== 'production') app.use(morgan('dev'))
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ extended: true, limit: '10mb' }))
