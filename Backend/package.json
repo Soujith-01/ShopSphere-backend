@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "test": "node --test test/ai.test.mjs test/sheetSync.test.mjs"
+    "test": "node --test test/razorpay.test.mjs test/sheetSync.test.mjs test/ai.test.mjs"
   },
   "keywords": [],
   "author": "",
@@ -31,9 +31,11 @@
     "mongoose": "^9.9.4",
     "morgan": "^1.12.0",
     "multer": "^2.3.0",
+    "nodemailer": "^10.0.15",
     "nodemon": "^3.1.14",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
+    "razorpay": "^2.9.8",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "streamifier": "^0.1.1"

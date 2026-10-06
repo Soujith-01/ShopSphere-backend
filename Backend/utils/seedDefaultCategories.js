@@ -1,15 +1,6 @@
-// Seeds a starter category tree (top-level + sub-categories) so sellers have
-// categories to assign products to. Safe to re-run: existing categories are
-// matched by slug and left untouched.
-//
-// Usage (from Backend/):  node scripts/seed-categories.js
-import mongoose from "mongoose";
-import { config } from "dotenv";
 import Category from "../models/Category.js";
 
-config();
-
-const CATEGORIES = [
+const DEFAULT_CATEGORIES = [
   {
     name: "Electronics",
     slug: "electronics",
@@ -98,55 +89,48 @@ const CATEGORIES = [
   },
 ];
 
-const findOrCreateBySlug = async ({ name, slug, description = "", level = 0, parentCategory = null, attributes = [], isFeatured = false }) => {
-  const existing = await Category.findOne({ slug });
-  if (existing) {
-    console.log(`  exists: ${slug}`);
-    return existing;
-  }
-  const category = await Category.create({
-    name,
-    slug,
-    description,
-    level,
-    parentCategory: parentCategory || null,
-    attributes,
-    sortOrder: 0,
-    isFeatured,
-  });
-  console.log(`  created: ${slug}`);
-  return category;
-};
+export async function autoSeedCategoriesIfEmpty() {
+  try {
+    const count = await Category.countDocuments();
+    if (count > 0) return;
 
-import { connectDB } from "../config/db.js";
+    console.log("[Categories] No categories found in database. Auto-seeding default categories…");
 
-const seed = async () => {
-  const conn = await connectDB();
-  if (!conn) {
-    console.error("Could not connect to database.");
-    process.exit(1);
-  }
-  console.log("Connected to MongoDB — seeding categories…");
+    for (const top of DEFAULT_CATEGORIES) {
+      let parent = await Category.findOne({ slug: top.slug });
+      if (!parent) {
+        parent = await Category.create({
+          name: top.name,
+          slug: top.slug,
+          description: top.description || "",
+          level: 0,
+          parentCategory: null,
+          attributes: top.attributes || [],
+          sortOrder: 0,
+          isActive: true,
+        });
+      }
 
-  for (const top of CATEGORIES) {
-    const parent = await findOrCreateBySlug(top);
-    for (const child of top.children || []) {
-      await findOrCreateBySlug({
-        ...child,
-        description: "",
-        level: 1,
-        parentCategory: parent._id,
-      });
+      for (const child of top.children || []) {
+        const existingChild = await Category.findOne({ slug: child.slug });
+        if (!existingChild) {
+          await Category.create({
+            name: child.name,
+            slug: child.slug,
+            description: "",
+            level: 1,
+            parentCategory: parent._id,
+            attributes: [],
+            sortOrder: 0,
+            isActive: true,
+          });
+        }
+      }
     }
+
+    const newCount = await Category.countDocuments();
+    console.log(`[Categories] Auto-seeding completed. ${newCount} categories available.`);
+  } catch (err) {
+    console.error("⚠️ [Categories] Auto-seeding failed:", err.message);
   }
-
-  const total = await Category.countDocuments();
-  console.log(`Done. ${total} categories present in the database.`);
-  await mongoose.disconnect();
-  process.exit(0);
-};
-
-seed().catch((err) => {
-  console.error("Seed failed:", err.message);
-  process.exit(1);
-});
+}

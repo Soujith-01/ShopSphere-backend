@@ -622,7 +622,12 @@ export async function syncAllStoreSheets() {
       }
     } catch (error) {
       const message = error?.response?.data?.error?.message || error.message;
-      console.error(`[SheetSync] ${store.name} failed: ${message}`);
+      if (message.includes("invalid_grant") || message.includes("Google OAuth authorization required")) {
+        console.error(`❌ [SheetSync] ${store.name} failed: Google OAuth token expired or invalid (${message}).`);
+        console.error(`👉 Re-authenticate Google Sheets at: http://localhost:${process.env.PORT || 3000}/api/google/auth`);
+      } else {
+        console.error(`[SheetSync] ${store.name} failed: ${message}`);
+      }
       results.push({ store: store.name, error: message });
     }
   }

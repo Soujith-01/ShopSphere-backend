@@ -9,11 +9,11 @@ const paymentSchema = new mongoose.Schema(
       index: true,
     },
 
-    // Reference to the parent order (one payment per checkout)
+    // Reference to the parent order (populated after order finalization)
     parentOrder: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "ParentOrder",
-      required: true,
+      default: null,
     },
 
     customer: {
@@ -34,10 +34,29 @@ const paymentSchema = new mongoose.Schema(
       enum: ["INR"],
     },
 
+    paymentProvider: {
+      type: String,
+      default: "razorpay",
+    },
+
     paymentMethod: {
       type: String,
-      enum: ["upi", "card", "net_banking"],
-      required: true,
+      default: "razorpay",
+    },
+
+    razorpayOrderId: {
+      type: String,
+      default: "",
+    },
+
+    razorpayPaymentId: {
+      type: String,
+      default: "",
+    },
+
+    razorpaySignature: {
+      type: String,
+      default: "",
     },
 
     status: {
@@ -46,7 +65,7 @@ const paymentSchema = new mongoose.Schema(
       default: "PENDING",
     },
 
-    // Simulated failure reason (for failed payments)
+    // Failure reason (for failed payments)
     failureReason: { type: String, default: "" },
   },
   { timestamps: true }

@@ -26,9 +26,12 @@ router.get("/", async (req, res) => {
   const store = await loadStore(req);
   if (!store) return res.status(404).json({ success: false, message: "Store not found. Please create one." });
 
-  const spreadsheetId = store.googleSheet?.spreadsheetId || "";
+  let spreadsheetId = store.googleSheet?.spreadsheetId || "";
+  if (!spreadsheetId && process.env.GOOGLE_SPREADSHEET_ID) {
+    spreadsheetId = process.env.GOOGLE_SPREADSHEET_ID;
+  }
   const spreadsheetUrl =
-    store.googleSheet?.spreadsheetUrl || spreadsheetUrlFor(spreadsheetId);
+    store.googleSheet?.spreadsheetUrl || spreadsheetUrlFor(spreadsheetId) || (spreadsheetId ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/edit` : "");
 
   // An expired token or a deleted sheet must not hide the link.
   let tabs = [];

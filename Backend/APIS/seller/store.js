@@ -1,11 +1,13 @@
 import { Router } from "express";
 import Store from "../../models/Store.js";
+import Notification from "../../models/Notification.js";
 import { generateSlug } from "../../utils/helpers.js";
 import {
   createSellerSpreadsheet,
   shareSpreadsheetWithSeller,
   revokeSheetAccessExcept,
 } from "../../services/googleSheetsServices.js";
+import { sendStoreSheetEmail } from "../../services/emailService.js";
 
 const router = Router();
 
@@ -43,6 +45,15 @@ async function ensureStoreSheet(store, sellerEmail) {
       }
     } catch (sheetErr) {
       console.error("⚠️ Google Sheets store creation failed:", sheetErr.message);
+      // Fallback: If personal sheet creation failed (e.g. OAuth token expired), attach the platform sheet ID so seller has working sheet access immediately
+      if (!store.googleSheet?.spreadsheetId && process.env.GOOGLE_SPREADSHEET_ID) {
+        store.googleSheet = {
+          spreadsheetId: process.env.GOOGLE_SPREADSHEET_ID,
+          spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${process.env.GOOGLE_SPREADSHEET_ID}/edit`,
+          sharedWith: sellerEmail || "",
+        };
+        await store.save();
+      }
     }
 
     return store;
@@ -50,7 +61,12 @@ async function ensureStoreSheet(store, sellerEmail) {
 
   // 2) Sheet exists but wasn't shared (created before sharing existed, or the
   // share failed) → backfill it so the seller can open and edit their sheet.
-  if (sellerEmail && store.googleSheet.sharedWith !== sellerEmail) {
+  if (store.googleSheet?.spreadsheetId && !store.googleSheet?.spreadsheetUrl) {
+    store.googleSheet.spreadsheetUrl = `https://docs.google.com/spreadsheets/d/${store.googleSheet.spreadsheetId}/edit`;
+    await store.save();
+  }
+
+  if (sellerEmail && store.googleSheet?.sharedWith !== sellerEmail && store.googleSheet?.spreadsheetId) {
     try {
       await shareSpreadsheetWithSeller(store.googleSheet.spreadsheetId, sellerEmail);
       store.googleSheet.sharedWith = sellerEmail;
@@ -112,6 +128,31 @@ router.post("/", async (req, res) => {
 
     req.seller.store = store._id;
     await req.seller.save();
+
+    const sheetUrl =
+      store.googleSheet?.spreadsheetUrl ||
+      `https://docs.google.com/spreadsheets/d/${process.env.GOOGLE_SPREADSHEET_ID || "19Mxj2xBBfUDo1Kd1BJmy7frN_mDi9QnyPvIJ7IBX1nk"}/edit`;
+
+    // Send direct email with Google Sheet link to seller's email address
+    if (sheetUrl && req.user?.email) {
+      sendStoreSheetEmail({
+        sellerEmail: req.user.email,
+        sellerName: req.user.name || store.name,
+        storeName: store.name,
+        sheetUrl,
+      }).catch((err) => console.error("⚠️ Failed to dispatch store email:", err.message));
+    }
+
+    // Send in-app notification with Google Sheet link to seller
+    if (sheetUrl) {
+      Notification.create({
+        recipient: req.user._id,
+        type: "system",
+        title: "Your Google Sheet is Ready!",
+        message: `Your store Google Sheet has been created and shared with ${req.user.email}. Open your sheet here: ${sheetUrl}`,
+        data: { entityType: "seller", entityId: req.seller._id, url: sheetUrl },
+      }).catch(() => {});
+    }
 
     res.status(201).json({ success: true, message: "Store created", data: store });
 });
@@ -201,6 +242,16 @@ router.post("/sheet/reshare", async (req, res) => {
     await store.save();
 
     const removed = revoked.filter((entry) => entry && entry !== previousEmail);
+    const sheetUrl = store.googleSheet?.spreadsheetUrl || `https://docs.google.com/spreadsheets/d/${store.googleSheet?.spreadsheetId}/edit`;
+
+    if (sheetUrl && email) {
+      sendStoreSheetEmail({
+        sellerEmail: email,
+        sellerName: req.user.name || store.name,
+        storeName: store.name,
+        sheetUrl,
+      }).catch((err) => console.error("⚠️ Failed to dispatch reshare email:", err.message));
+    }
 
     res.json({
       success: true,

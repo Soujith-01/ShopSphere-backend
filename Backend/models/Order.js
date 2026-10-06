@@ -109,15 +109,19 @@ const orderSchema = new mongoose.Schema(
     payment: {
       method: {
         type: String,
-        enum: ["cod", "upi", "card", "net_banking", "wallet", "mock"],
+        enum: ["cod", "upi", "card", "net_banking", "wallet", "mock", "razorpay"],
         default: "cod",
       },
       status: {
         type: String,
-        enum: ["pending", "completed", "failed", "refunded"],
+        enum: ["pending", "completed", "paid", "failed", "refunded"],
         default: "pending",
       },
+      paymentProvider: { type: String, default: "razorpay" },
       transactionId: { type: String, default: "" },
+      razorpayOrderId: { type: String, default: "" },
+      razorpayPaymentId: { type: String, default: "" },
+      razorpaySignature: { type: String, default: "" },
       paidAt: { type: Date, default: null },
       refundId: { type: String, default: "" },
       refundedAt: { type: Date, default: null },

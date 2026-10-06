@@ -19,7 +19,11 @@ const TOKEN_PATH = path.join(
 
 const SCOPES = [
   "https://www.googleapis.com/auth/spreadsheets",
-  "https://www.googleapis.com/auth/drive"
+  "https://www.googleapis.com/auth/drive",
+  "https://www.googleapis.com/auth/drive.file",
+  "openid",
+  "https://www.googleapis.com/auth/userinfo.email",
+  "https://www.googleapis.com/auth/userinfo.profile"
 ];
 
 function getOAuth2Client() {
@@ -30,10 +34,15 @@ function getOAuth2Client() {
   const { client_secret, client_id, redirect_uris } =
     credentials.web || credentials.installed;
 
+  const redirectUri =
+    process.env.GOOGLE_REDIRECT_URI ||
+    (process.env.BACKEND_URL ? `${process.env.BACKEND_URL.replace(/\/$/, "")}/api/google/callback` : null) ||
+    redirect_uris[0];
+
   return new google.auth.OAuth2(
     client_id,
     client_secret,
-    process.env.GOOGLE_REDIRECT_URI || redirect_uris[0]
+    redirectUri
   );
 }
 

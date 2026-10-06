@@ -3,13 +3,13 @@ import jwt from "jsonwebtoken";
 // Falls back to JWT_SECRET so one env var is enough; add JWT_ACCESS_SECRET / JWT_REFRESH_SECRET to split them
 export const generateAccessToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_ACCESS_SECRET || process.env.JWT_SECRET, {
-    expiresIn: "15m",
+    expiresIn: process.env.JWT_ACCESS_EXPIRES_IN || "2h",
   });
 };
 
 export const generateRefreshToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET, {
-    expiresIn: "7d",
+    expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d",
   });
 };
 
@@ -20,7 +20,7 @@ export const setTokenCookies = (res, accessToken, refreshToken) => {
     httpOnly: true,
     secure: isProduction,
     sameSite: "strict",
-    maxAge: 15 * 60 * 1000, // 15 minutes
+    maxAge: 2 * 60 * 60 * 1000, // 2 hours
   });
 
   res.cookie("refreshToken", refreshToken, {

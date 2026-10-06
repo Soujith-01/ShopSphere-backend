@@ -26,6 +26,7 @@ router.use("/users", users);
 router.use("/notifications", notifications);
 router.use("/support", support);
 router.use("/payments", payments);
+router.use("/payment", payments);
 router.use("/messages", messages);
 router.use("/returns", returns);
 

@@ -26,6 +26,7 @@ import setupTicketSocket from './sockets/tickets.js'
 import googleSheetsRoutes from "./APIS/googleSheets.js";
 import { startSheetSync } from "./services/sheetSync.js";
 import { connectDB } from "./config/db.js";
+import { autoSeedCategoriesIfEmpty } from "./utils/seedDefaultCategories.js";
 
 
 const app = express()
@@ -181,6 +182,9 @@ const startServer = async () => {
 		}
 		return
 	}
+
+	// Auto-seed default categories if database has none
+	await autoSeedCategoriesIfEmpty()
 
 	// Pull new rows from every seller's Google Sheet into MongoDB every 5 min
 	startSheetSync()
