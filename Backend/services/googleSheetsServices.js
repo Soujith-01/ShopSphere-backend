@@ -7,15 +7,13 @@ import { ORDER_HEADERS, SHEET_TABS } from "./sheetTabs.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const CREDENTIALS_PATH = path.join(
-  __dirname,
-  "../credentials/google-credentials.json"
-);
+const CREDENTIALS_PATH =
+  process.env.GOOGLE_CREDENTIALS_PATH ||
+  path.join(__dirname, "../credentials/google-credentials.json");
 
-const TOKEN_PATH = path.join(
-  __dirname,
-  "../credentials/token.json"
-);
+const TOKEN_PATH =
+  process.env.GOOGLE_TOKEN_PATH ||
+  path.join(__dirname, "../credentials/token.json");
 
 const SCOPES = [
   "https://www.googleapis.com/auth/spreadsheets",
@@ -26,10 +24,44 @@ const SCOPES = [
   "https://www.googleapis.com/auth/userinfo.profile"
 ];
 
+function getCredentialsData() {
+  if (process.env.GOOGLE_CREDENTIALS_JSON) {
+    try {
+      return typeof process.env.GOOGLE_CREDENTIALS_JSON === "string"
+        ? JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON)
+        : process.env.GOOGLE_CREDENTIALS_JSON;
+    } catch (err) {
+      console.error("⚠️ [Google Sheets] Could not parse GOOGLE_CREDENTIALS_JSON env var:", err.message);
+    }
+  }
+
+  if (fs.existsSync(CREDENTIALS_PATH)) {
+    return JSON.parse(fs.readFileSync(CREDENTIALS_PATH, "utf8"));
+  }
+
+  throw new Error(`Google credentials not found. Set GOOGLE_CREDENTIALS_PATH or GOOGLE_CREDENTIALS_JSON (checked ${CREDENTIALS_PATH}).`);
+}
+
+function getTokenData() {
+  if (process.env.GOOGLE_TOKEN_JSON) {
+    try {
+      return typeof process.env.GOOGLE_TOKEN_JSON === "string"
+        ? JSON.parse(process.env.GOOGLE_TOKEN_JSON)
+        : process.env.GOOGLE_TOKEN_JSON;
+    } catch (err) {
+      console.error("⚠️ [Google Sheets] Could not parse GOOGLE_TOKEN_JSON env var:", err.message);
+    }
+  }
+
+  if (fs.existsSync(TOKEN_PATH)) {
+    return JSON.parse(fs.readFileSync(TOKEN_PATH, "utf8"));
+  }
+
+  return null;
+}
+
 function getOAuth2Client() {
-  const credentials = JSON.parse(
-    fs.readFileSync(CREDENTIALS_PATH, "utf8")
-  );
+  const credentials = getCredentialsData();
 
   const { client_secret, client_id, redirect_uris } =
     credentials.web || credentials.installed;
@@ -63,10 +95,18 @@ export async function saveToken(code) {
 
   oauth2Client.setCredentials(tokens);
 
-  fs.writeFileSync(
-    TOKEN_PATH,
-    JSON.stringify(tokens, null, 2)
-  );
+  try {
+    const tokenDir = path.dirname(TOKEN_PATH);
+    if (!fs.existsSync(tokenDir)) {
+      fs.mkdirSync(tokenDir, { recursive: true });
+    }
+    fs.writeFileSync(
+      TOKEN_PATH,
+      JSON.stringify(tokens, null, 2)
+    );
+  } catch (err) {
+    console.error("⚠️ [Google Sheets] Could not write token file:", err.message);
+  }
 
   return tokens;
 }
@@ -74,13 +114,10 @@ export async function saveToken(code) {
 async function getAuthenticatedClient() {
   const oauth2Client = getOAuth2Client();
 
-  if (!fs.existsSync(TOKEN_PATH)) {
+  const token = getTokenData();
+  if (!token) {
     throw new Error("Google OAuth authorization required.");
   }
-
-  const token = JSON.parse(
-    fs.readFileSync(TOKEN_PATH, "utf8")
-  );
 
   oauth2Client.setCredentials(token);
 
@@ -91,6 +128,10 @@ async function getAuthenticatedClient() {
   oauth2Client.on("tokens", (tokens) => {
     try {
       const merged = { ...oauth2Client.credentials, ...tokens };
+      const tokenDir = path.dirname(TOKEN_PATH);
+      if (!fs.existsSync(tokenDir)) {
+        fs.mkdirSync(tokenDir, { recursive: true });
+      }
       fs.writeFileSync(TOKEN_PATH, JSON.stringify(merged, null, 2));
     } catch (err) {
       console.error("⚠️ [Google Sheets] Could not persist refreshed token:", err.message);
