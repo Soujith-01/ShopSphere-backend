@@ -3,6 +3,7 @@ import Product from "../../models/Product.js";
 import Variant from "../../models/Variant.js";
 import Store from "../../models/Store.js";
 import Notification from "../../models/Notification.js";
+import Category from "../../models/Category.js";
 import { generateSlug } from "../../utils/helpers.js";
 import { refreshProductEmbedding, shouldRefreshEmbedding } from "../../services/ai/embedding.js";
 import { addProductToSheet } from "../../services/googleSheetsServices.js";
@@ -147,6 +148,8 @@ try {
 
   if (!targetSpreadsheetId) throw new Error("no spreadsheet on this store yet");
 
+  const categoryDoc = await Category.findById(product.category).select("name").lean();
+
   await addProductToSheet({
     productId: product._id.toString(),
     sellerId: product.seller.toString(),
@@ -160,7 +163,7 @@ try {
     discountType: product.discount?.type || "None",
     discountValue: product.discount?.value || 0,
 
-    category: product.category?.toString() || "",
+    category: categoryDoc?.name || product.category?.toString() || "",
 
     tags: product.tags || [],
 

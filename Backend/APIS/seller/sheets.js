@@ -3,7 +3,7 @@ import Store from "../../models/Store.js";
 import { importProductsFromSheet } from "../../services/sheetSync.js";
 import { syncSellerOrdersToSheet } from "../../services/sheetOrders.js";
 import { syncInventoryToSheet } from "../../services/sheetInventory.js";
-import { createOrdersSheet, getSheetTabs } from "../../services/googleSheetsServices.js";
+import { createOrdersSheet, getSheetTabs, syncCategoriesToSpreadsheet } from "../../services/googleSheetsServices.js";
 import { SHEET_TABS, buildSheetTabUrl, spreadsheetUrlFor } from "../../services/sheetTabs.js";
 
 const router = Router();
@@ -54,12 +54,14 @@ router.get("/", async (req, res) => {
       tabs,
       ordersUrl: buildSheetTabUrl(spreadsheetUrl, gidOf(SHEET_TABS.orders)),
       inventoryUrl: buildSheetTabUrl(spreadsheetUrl, gidOf(SHEET_TABS.inventory)),
+      categoriesUrl: buildSheetTabUrl(spreadsheetUrl, gidOf(SHEET_TABS.categories)),
     },
   });
 });
 
 // "Sync now" — pull the seller's sheet edits into MongoDB (new rows, edited
 // stock/price, with Phase 8 conflict handling), then refresh the derived tabs:
+// the Categories tab is ensured and populated with dropdown validation applied,
 // the Orders tab is created if missing (or rebuilt if it was written by an older
 // schema) and repopulated from this seller's recent orders, and the Inventory
 // snapshot is rebuilt.
@@ -76,11 +78,14 @@ router.post("/sync", async (req, res) => {
 
   const data = await importProductsFromSheet({ seller: req.seller, store });
 
-  // The Orders + Inventory tabs are best-effort: a Sheets outage must not lose
+  // The Categories + Orders + Inventory tabs are best-effort: a Sheets outage must not lose
   // the product import above.
   let inventory = null;
   let orders = null;
+  let categories = null;
   try {
+    categories = await syncCategoriesToSpreadsheet(store.googleSheet.spreadsheetId);
+
     await createOrdersSheet(store.googleSheet.spreadsheetId);
 
     // Re-mirror recent orders, so a freshly created — or schema-rebuilt —
@@ -96,8 +101,36 @@ router.post("/sync", async (req, res) => {
   res.json({
     success: true,
     message: "Google Sheets sync completed",
-    data: { ...data, orders, inventory },
+    data: { ...data, orders, inventory, categories },
   });
+});
+
+// Re-sync the Categories tab and dropdown validation for this seller's spreadsheet
+router.post("/categories", async (req, res) => {
+  const store = await loadStore(req);
+
+  if (!store?.googleSheet?.spreadsheetId) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "Your store has no Google Sheet yet. Open your store page once to create one.",
+    });
+  }
+
+  try {
+    const outcome = await syncCategoriesToSpreadsheet(store.googleSheet.spreadsheetId);
+    res.json({
+      success: true,
+      message: `Categories synced (${outcome.count} active categories)`,
+      data: outcome,
+    });
+  } catch (error) {
+    const message = error?.response?.data?.error?.message || error.message;
+    res.status(502).json({
+      success: false,
+      message: `Could not sync categories to Google Sheet: ${message}`,
+    });
+  }
 });
 
 // Rebuild the Inventory tab from MongoDB (created on first use)

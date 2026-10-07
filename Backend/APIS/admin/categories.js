@@ -1,6 +1,7 @@
 import { Router } from "express";
 import Category from "../../models/Category.js";
 import { generateSlug } from "../../utils/helpers.js";
+import { syncCategoriesToAllSellerSpreadsheets } from "../../services/googleSheetsServices.js";
 
 const router = Router();
 
@@ -33,6 +34,23 @@ router.post("/", async (req, res) => {
 
     const category = await Category.create({ name, slug, description: description || "", parentCategory: parentCategory || null, image: image || {}, attributes: attributes || [], sortOrder: sortOrder || 0, level, isFeatured: isFeatured || false });
     res.status(201).json({ success: true, data: category });
+});
+
+// Sync categories to all seller Google Spreadsheets (re-populates Categories tab and updates dropdown)
+router.post("/sync-sheets", async (req, res) => {
+  try {
+    const results = await syncCategoriesToAllSellerSpreadsheets();
+    res.json({
+      success: true,
+      message: `Categories synced across ${results.length} seller spreadsheet(s)`,
+      data: results,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
 });
 
 // Update a category

@@ -87,7 +87,7 @@ export async function rememberSheetBaseline(product, variants = null) {
 export async function syncProductToSheet(productOrId) {
   try {
     const product = mongoose.isValidObjectId(productOrId)
-      ? await Product.findById(productOrId)
+      ? await Product.findById(productOrId).populate("category", "name")
       : productOrId;
 
     if (!product) return null;
@@ -134,19 +134,52 @@ export async function syncProductToSheet(productOrId) {
   }
 }
 
-// The category column may hold a Category ObjectId (rows written by the app) or
-// a plain name the seller typed (slugs are generated from names), so accept both.
-async function resolveCategoryId(raw) {
+function escapeRegex(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Resolves a category name (or slug / legacy ObjectId) from a Google Sheet cell
+ * to an active MongoDB Category ObjectId.
+ * Matches:
+ * 1. Case-insensitive category name (e.g. "Electronics", "electronics")
+ * 2. Generated slug (e.g. "home-kitchen" for "Home & Kitchen")
+ * 3. Exact MongoDB ObjectId (for legacy rows or direct ID references)
+ * Only returns active categories (`isActive: { $ne: false }`).
+ */
+export async function resolveCategoryId(raw) {
   const value = String(raw || "").trim();
   if (!value) return null;
 
+  if (mongoose.connection.readyState !== 1) return null;
+
+  // 1. Try matching active category by name (case-insensitive, trimmed)
+  const byName = await Category.findOne({
+    name: new RegExp(`^${escapeRegex(value)}$`, "i"),
+    isActive: { $ne: false },
+  }).select("_id").lean();
+  if (byName) return byName._id;
+
+  // 2. Try matching active category by slug
+  const slug = generateSlug(value);
+  if (slug) {
+    const bySlug = await Category.findOne({
+      slug,
+      isActive: { $ne: false },
+    }).select("_id").lean();
+    if (bySlug) return bySlug._id;
+  }
+
+  // 3. Fallback for valid ObjectIds (active only)
   if (mongoose.isValidObjectId(value)) {
-    const byId = await Category.findById(value).select("_id").lean();
+    const byId = await Category.findOne({
+      _id: value,
+      isActive: { $ne: false },
+    }).select("_id").lean();
     if (byId) return byId._id;
   }
 
-  const bySlug = await Category.findOne({ slug: generateSlug(value) }).select("_id").lean();
-  return bySlug?._id || null;
+  return null;
 }
 
 /**
@@ -450,7 +483,7 @@ export async function importProductsFromSheet({ seller, store }) {
 
       const categoryId = await resolveCategoryId(row.category);
       if (!categoryId) {
-        errors.push({ row: row.sheetRow, reason: `Unknown category "${row.category}"` });
+        errors.push({ row: row.sheetRow, reason: `Invalid category: ${row.category}` });
         continue;
       }
 

@@ -2,7 +2,10 @@ import { google } from "googleapis";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { ORDER_HEADERS, SHEET_TABS } from "./sheetTabs.js";
+import mongoose from "mongoose";
+import Category from "../models/Category.js";
+import { generateSlug } from "../utils/helpers.js";
+import { CATEGORY_HEADERS, ORDER_HEADERS, SHEET_TABS } from "./sheetTabs.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -433,6 +436,44 @@ export async function testSheetsConnection() {
   return response.data.properties.title;
 }
 
+function escapeRegex(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Resolve a category ObjectId, document, or string to its display categoryName.
+ * Ensures the Google Sheet always receives the human-readable category name.
+ */
+export async function resolveCategoryName(categoryRef) {
+  if (!categoryRef) return "";
+
+  if (typeof categoryRef === "object") {
+    if (categoryRef.name) return String(categoryRef.name).trim();
+    if (categoryRef._id) categoryRef = categoryRef._id;
+  }
+
+  const value = String(categoryRef).trim();
+  if (!value) return "";
+
+  if (mongoose.connection.readyState === 1) {
+    if (mongoose.isValidObjectId(value)) {
+      const cat = await Category.findById(value).select("name").lean();
+      if (cat?.name) return cat.name;
+    }
+
+    const catByNameOrSlug = await Category.findOne({
+      $or: [
+        { name: new RegExp(`^${escapeRegex(value)}$`, "i") },
+        { slug: generateSlug(value) },
+      ],
+    }).select("name").lean();
+
+    if (catByNameOrSlug?.name) return catByNameOrSlug.name;
+  }
+
+  return value;
+}
+
 export async function addProductToSheet(product, customSpreadsheetId) {
   const auth = await getAuthenticatedClient();
 
@@ -443,6 +484,8 @@ export async function addProductToSheet(product, customSpreadsheetId) {
 
   const spreadsheetId = customSpreadsheetId || product.spreadsheetId || process.env.GOOGLE_SPREADSHEET_ID;
 
+  const categoryName = await resolveCategoryName(product.category || product.categoryName);
+
   const values = [[
     product.productId || "",
     product.sellerId || "",
@@ -452,7 +495,7 @@ export async function addProductToSheet(product, customSpreadsheetId) {
     product.stock ?? 0,
     product.discountType || "None",
     product.discountValue ?? 0,
-    product.category || "",
+    categoryName || "",
     Array.isArray(product.tags)
       ? product.tags.join(", ")
       : product.tags || "",
@@ -521,6 +564,8 @@ export async function updateProductInSheet(product, customSpreadsheetId) {
     );
   }
 
+  const categoryName = await resolveCategoryName(product.category || product.categoryName);
+
   const values = [[
     productId,
     product.seller?.toString() || product.sellerId || "",
@@ -532,7 +577,7 @@ export async function updateProductInSheet(product, customSpreadsheetId) {
     product.discount?.type || "None",
     product.discount?.value ?? 0,
 
-    product.category?.toString() || "",
+    categoryName || "",
     
     Array.isArray(product.tags)
       ? product.tags.join(", ")
@@ -869,6 +914,15 @@ export async function createSellerSpreadsheet(shopName, sellerEmail) {
       },
     });
 
+    // Create/populate Categories tab and set category dropdown validation on Products!I2:I
+    try {
+      await syncCategoriesToSpreadsheet(spreadsheetId);
+    } catch (categorySyncError) {
+      console.error(
+        `⚠️ [Google Sheets] Could not sync Categories tab on ${spreadsheetId}: ${categorySyncError.message}`
+      );
+    }
+
     console.log(
       `✅ [Google Sheets] Created spreadsheet "${shopName}": ${spreadsheetId}`
     );
@@ -917,4 +971,140 @@ export async function testGoogleIdentity() {
   console.log("Name:", response.data.name);
 
   return response.data;
+}
+
+/**
+ * Synchronize MongoDB active categories to a seller's Google Spreadsheet:
+ * 1. Creates the Categories tab if it does not exist (never duplicates it).
+ * 2. Writes the category headers (categoryId, categoryName).
+ * 3. Populates all active categories from MongoDB.
+ * 4. Applies a Google Sheets data validation rule (ONE_OF_RANGE) to Products!I2:I
+ *    so sellers have a dropdown with category names from Categories!B2:B.
+ *
+ * @param {string} spreadsheetId
+ * @returns {Promise<{exists: boolean, created: boolean, count: number}>}
+ */
+export async function syncCategoriesToSpreadsheet(spreadsheetId) {
+  if (!spreadsheetId) return { exists: false, created: false, count: 0 };
+
+  const auth = await getAuthenticatedClient();
+  const sheets = google.sheets({ version: "v4", auth });
+
+  // 1. Read active categories from MongoDB (sorted for clean display)
+  const categories = mongoose.connection.readyState === 1
+    ? await Category.find({ isActive: { $ne: false } })
+        .sort({ sortOrder: 1, name: 1 })
+        .select("_id name")
+        .lean()
+    : [];
+
+  // 2. Ensure Categories tab exists
+  const tabs = await getSheetTabs(spreadsheetId, sheets);
+  const categoriesTab = tabs.find((tab) => tab.title === SHEET_TABS.categories);
+  const created = !categoriesTab;
+
+  if (created) {
+    await sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [{ addSheet: { properties: { title: SHEET_TABS.categories } } }],
+      },
+    });
+  }
+
+  // 3. Write header row
+  await sheets.spreadsheets.values.update({
+    spreadsheetId,
+    range: `${SHEET_TABS.categories}!A1:B1`,
+    valueInputOption: "RAW",
+    requestBody: { values: [CATEGORY_HEADERS] },
+  });
+
+  // 4. Populate category data rows (clear old rows first so deleted/inactive categories disappear)
+  await clearSheetValues(spreadsheetId, `${SHEET_TABS.categories}!A2:B`);
+
+  if (categories.length > 0) {
+    const rows = categories.map((cat) => [cat._id.toString(), cat.name]);
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `${SHEET_TABS.categories}!A2:B${rows.length + 1}`,
+      valueInputOption: "RAW",
+      requestBody: { values: rows },
+    });
+  }
+
+  // 5. Apply category dropdown data validation to Products!I2:I
+  const allTabs = await getSheetTabs(spreadsheetId, sheets);
+  const productsTab = allTabs.find((tab) => tab.title === SHEET_TABS.products);
+
+  if (productsTab && productsTab.gid !== undefined) {
+    try {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: [
+            {
+              setDataValidation: {
+                range: {
+                  sheetId: productsTab.gid,
+                  startRowIndex: 1, // Row 2 downwards (0-indexed, excludes row 1 header)
+                  startColumnIndex: 8, // Column I (0-indexed: A=0, B=1, C=2, D=3, E=4, F=5, G=6, H=7, I=8)
+                  endColumnIndex: 9, // Column I
+                },
+                rule: {
+                  condition: {
+                    type: "ONE_OF_RANGE",
+                    values: [
+                      {
+                        userEnteredValue: `='${SHEET_TABS.categories}'!B2:B`,
+                      },
+                    ],
+                  },
+                  inputMessage: "Please select a category from the dropdown",
+                  strict: true,
+                  showCustomUi: true,
+                },
+              },
+            },
+          ],
+        },
+      });
+    } catch (valErr) {
+      console.warn(
+        `⚠️ [Google Sheets] Could not set data validation on ${spreadsheetId}:`,
+        valErr.message
+      );
+    }
+  }
+
+  console.log(
+    `✅ [Google Sheets] Synced ${categories.length} categories to spreadsheet ${spreadsheetId}`
+  );
+
+  return { exists: true, created, count: categories.length };
+}
+
+/**
+ * Refresh the Categories tab and dropdown validation for all seller spreadsheets.
+ */
+export async function syncCategoriesToAllSellerSpreadsheets() {
+  const Store = (await import("../models/Store.js")).default;
+  const stores = await Store.find({ "googleSheet.spreadsheetId": { $nin: ["", null] } })
+    .select("name googleSheet")
+    .lean();
+
+  const results = [];
+  for (const store of stores) {
+    const spreadsheetId = store.googleSheet?.spreadsheetId;
+    if (!spreadsheetId) continue;
+    try {
+      const outcome = await syncCategoriesToSpreadsheet(spreadsheetId);
+      results.push({ store: store.name, spreadsheetId, success: true, count: outcome.count });
+    } catch (error) {
+      const message = error?.response?.data?.error?.message || error.message;
+      console.error(`⚠️ [Google Sheets] Category sync failed for ${store.name} (${spreadsheetId}):`, message);
+      results.push({ store: store.name, spreadsheetId, success: false, error: message });
+    }
+  }
+  return results;
 }

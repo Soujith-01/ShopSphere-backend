@@ -17,7 +17,13 @@ export const SHEET_TABS = {
   products: "Products",
   orders: "Orders",
   inventory: "Inventory",
+  categories: "Categories",
 };
+
+export const CATEGORY_HEADERS = [
+  "categoryId",
+  "categoryName",
+];
 
 export const PRODUCT_HEADERS = [
   "productId",

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "test": "node --test test/razorpay.test.mjs test/sheetSync.test.mjs test/ai.test.mjs"
+    "test": "node --test test/razorpay.test.mjs test/sheetSync.test.mjs test/ai.test.mjs test/categoryDropdown.test.mjs"
   },
   "keywords": [],
   "author": "",
