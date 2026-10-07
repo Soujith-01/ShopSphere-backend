@@ -63,15 +63,17 @@ function getTokenData() {
   return null;
 }
 
-function getOAuth2Client() {
+function getOAuth2Client(customRedirectUri = null) {
   const credentials = getCredentialsData();
 
   const { client_secret, client_id, redirect_uris } =
     credentials.web || credentials.installed;
 
   const redirectUri =
+    customRedirectUri ||
     process.env.GOOGLE_REDIRECT_URI ||
     (process.env.BACKEND_URL ? `${process.env.BACKEND_URL.replace(/\/$/, "")}/api/google/callback` : null) ||
+    (process.env.RENDER_EXTERNAL_URL ? `${process.env.RENDER_EXTERNAL_URL.replace(/\/$/, "")}/api/google/callback` : null) ||
     redirect_uris[0];
 
   return new google.auth.OAuth2(
@@ -81,8 +83,8 @@ function getOAuth2Client() {
   );
 }
 
-export function getAuthorizationUrl() {
-  const oauth2Client = getOAuth2Client();
+export function getAuthorizationUrl(customRedirectUri = null) {
+  const oauth2Client = getOAuth2Client(customRedirectUri);
 
   return oauth2Client.generateAuthUrl({
     access_type: "offline",
@@ -91,8 +93,8 @@ export function getAuthorizationUrl() {
   });
 }
 
-export async function saveToken(code) {
-  const oauth2Client = getOAuth2Client();
+export async function saveToken(code, customRedirectUri = null) {
+  const oauth2Client = getOAuth2Client(customRedirectUri);
 
   const { tokens } = await oauth2Client.getToken(code);
 

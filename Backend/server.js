@@ -30,6 +30,7 @@ import { autoSeedCategoriesIfEmpty } from "./utils/seedDefaultCategories.js";
 
 
 const app = express()
+app.set('trust proxy', 1)
 const server = http.createServer(app)
 const PORT = parseInt(process.env.PORT, 10) || 3000
 const __filename = fileURLToPath(import.meta.url)

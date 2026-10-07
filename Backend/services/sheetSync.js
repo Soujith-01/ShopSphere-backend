@@ -656,8 +656,12 @@ export async function syncAllStoreSheets() {
     } catch (error) {
       const message = error?.response?.data?.error?.message || error.message;
       if (message.includes("invalid_grant") || message.includes("Google OAuth authorization required")) {
+        const baseUrl =
+          process.env.BACKEND_URL ||
+          process.env.RENDER_EXTERNAL_URL ||
+          `http://localhost:${process.env.PORT || 3000}`;
         console.error(`❌ [SheetSync] ${store.name} failed: Google OAuth token expired or invalid (${message}).`);
-        console.error(`👉 Re-authenticate Google Sheets at: http://localhost:${process.env.PORT || 3000}/api/google/auth`);
+        console.error(`👉 Re-authenticate Google Sheets at: ${baseUrl.replace(/\/$/, "")}/api/google/auth`);
       } else {
         console.error(`[SheetSync] ${store.name} failed: ${message}`);
       }
